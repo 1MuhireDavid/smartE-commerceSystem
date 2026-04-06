@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.CreateOrderController"
+      spacing="10" style="-fx-padding: 16;" prefWidth="640">
+
+    <Label text="Create New Order"
+           style="-fx-font-size: 15; -fx-font-weight: bold;"/>
+
+    <!-- Customer -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label text="Customer:" prefWidth="90"/>
+        <ComboBox fx:id="customerCombo" prefWidth="300" promptText="Select customer"/>
+    </HBox>
+
+    <!-- Add item row -->
+    <HBox spacing="8" alignment="CENTER_LEFT"
+          style="-fx-border-color: #bdc3c7; -fx-border-radius: 4; -fx-padding: 8;">
+        <Label text="Product:"/>
+        <ComboBox fx:id="productCombo" prefWidth="220" promptText="Select product"/>
+        <Label text="Qty:"/>
+        <TextField fx:id="qtyField" prefWidth="55" promptText="1"/>
+        <Label fx:id="priceLabel" text="" style="-fx-font-weight: bold; -fx-text-fill: #2980b9;"/>
+        <Button text="Add Item" onAction="#handleAddItem"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+    </HBox>
+
+    <!-- Items table -->
+    <TableView fx:id="itemsTable" prefHeight="160" VBox.vgrow="ALWAYS">
+        <placeholder><Label text="No items added yet"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colProduct" text="Product"    prefWidth="230"/>
+            <TableColumn fx:id="colQty"     text="Qty"        prefWidth="60"/>
+            <TableColumn fx:id="colUnit"    text="Unit Price" prefWidth="90"/>
+            <TableColumn fx:id="colLine"    text="Line Total" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <HBox alignment="CENTER_RIGHT">
+        <Button text="Remove Selected" onAction="#handleRemoveItem"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+    </HBox>
+
+    <!-- Discount row -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Discount ($):"/>
+        <TextField fx:id="discountField" prefWidth="110" promptText="0.00"/>
+    </HBox>
+
+    <!-- Totals row -->
+    <HBox spacing="20" alignment="CENTER_RIGHT">
+        <Label text="Subtotal:" style="-fx-font-weight: bold;"/>
+        <Label fx:id="subtotalLabel" text="$$0.00" prefWidth="90"/>
+        <Label text="Total:" style="-fx-font-weight: bold; -fx-font-size: 14;"/>
+        <Label fx:id="totalLabel" text="$$0.00" prefWidth="90"
+               style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2980b9;"/>
+    </HBox>
+
+    <Label fx:id="errorLabel" text="" wrapText="true"
+           style="-fx-text-fill: #e74c3c; -fx-font-size: 12;"/>
+
+    <!-- Buttons -->
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="Cancel"      onAction="#handleCancel"/>
+        <Button text="Place Order" onAction="#handleSubmit"
+                style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-size: 13;"/>
+    </HBox>
+
+</VBox>

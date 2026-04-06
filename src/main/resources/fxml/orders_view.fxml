@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.OrdersController"
+      spacing="8" style="-fx-padding: 14;">
+
+    <!-- ── Toolbar ── -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label text="Search:"/>
+        <TextField fx:id="searchField" promptText="Order # or customer name…" prefWidth="220"
+                   onAction="#handleSearch"/>
+        <Label text="Status:"/>
+        <ComboBox fx:id="statusFilter" prefWidth="130" onAction="#handleSearch"
+                  promptText="All statuses"/>
+        <Button text="Search" onAction="#handleSearch"
+                style="-fx-background-color: #2980b9; -fx-text-fill: white;"/>
+        <Button text="Clear"  onAction="#handleClear"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="New Order" onAction="#handleCreateOrder"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+        <Button fx:id="viewBtn"         text="View Details"    onAction="#handleView"
+                style="-fx-background-color: #8e44ad; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="updateStatusBtn" text="Update Status"   onAction="#handleUpdateStatus"
+                style="-fx-background-color: #f39c12; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="deleteBtn"       text="Delete"          onAction="#handleDeleteOrder"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;" disable="true"/>
+    </HBox>
+    <TableView fx:id="orderTable" VBox.vgrow="ALWAYS">
+        <placeholder><Label text="No orders found"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colId"         text="ID"          prefWidth="60"/>
+            <TableColumn fx:id="colNumber"     text="Order #"     prefWidth="150"/>
+            <TableColumn fx:id="colCustomer"   text="Customer"    prefWidth="160"/>
+            <TableColumn fx:id="colStatus"     text="Status"      prefWidth="100"/>
+            <TableColumn fx:id="colTotal"      text="Total"       prefWidth="90"/>
+            <TableColumn fx:id="colPayment"    text="Payment"     prefWidth="90"/>
+            <TableColumn fx:id="colDate"       text="Ordered At"  prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <Label fx:id="feedbackLabel" text="" wrapText="true"
+           style="-fx-text-fill: #27ae60; -fx-font-size: 12;"/>
+</VBox>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.PaymentController"
+      spacing="8" style="-fx-padding: 14;">
+
+    <!-- ── Toolbar ── -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label text="Search:"/>
+        <TextField fx:id="searchField" promptText="Order # or transaction ID…"
+                   prefWidth="200" onAction="#handleSearch"/>
+        <Label text="Status:"/>
+        <ComboBox fx:id="statusFilter" prefWidth="120" promptText="All statuses"
+                  onAction="#handleSearch"/>
+        <Button text="Search" onAction="#handleSearch"
+                style="-fx-background-color: #2980b9; -fx-text-fill: white;"/>
+        <Button text="Clear"  onAction="#handleClear"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="updateStatusBtn" text="Update Status" onAction="#handleUpdateStatus"
+                style="-fx-background-color: #f39c12; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="deleteBtn" text="Delete" onAction="#handleDelete"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;" disable="true"/>
+    </HBox>
+
+    <!-- ── Payments table ── -->
+    <TableView fx:id="paymentTable" VBox.vgrow="ALWAYS">
+        <placeholder><Label text="No payments found"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colId"     text="ID"          prefWidth="55"/>
+            <TableColumn fx:id="colOrder"  text="Order #"     prefWidth="160"/>
+            <TableColumn fx:id="colMethod" text="Method"      prefWidth="110"/>
+            <TableColumn fx:id="colAmount" text="Amount"      prefWidth="90"/>
+            <TableColumn fx:id="colStatus" text="Status"      prefWidth="90"/>
+            <TableColumn fx:id="colTxId"   text="Tx ID"       prefWidth="150"/>
+            <TableColumn fx:id="colPaidAt" text="Paid At"     prefWidth="130"/>
+        </columns>
+    </TableView>
+
+    <!-- ── Record payment form ── -->
+    <TitledPane text="Record New Payment" collapsible="false"
+                style="-fx-font-weight: bold;">
+        <content>
+            <GridPane hgap="10" vgap="8" style="-fx-padding: 10;">
+
+                <Label text="Order:"          GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <ComboBox fx:id="orderCombo"  GridPane.columnIndex="1" GridPane.rowIndex="0"
+                          prefWidth="200" promptText="Select order…"/>
+
+                <Label text="Method:"         GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                <ComboBox fx:id="methodCombo" GridPane.columnIndex="3" GridPane.rowIndex="0"
+                          prefWidth="130"/>
+
+                <Label text="Amount ($):"       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <TextField fx:id="amountField"  GridPane.columnIndex="1" GridPane.rowIndex="1"
+                           prefWidth="200" promptText="0.00"/>
+
+                <Label text="Tx ID (opt):"    GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+                <TextField fx:id="txIdField"  GridPane.columnIndex="3" GridPane.rowIndex="1"
+                           prefWidth="180" promptText="leave blank if none"/>
+
+                <Button text="Record Payment" onAction="#handleRecord"
+                        style="-fx-background-color: #27ae60; -fx-text-fill: white;"
+                        GridPane.columnIndex="0" GridPane.rowIndex="2"
+                        GridPane.columnSpan="2"/>
+            </GridPane>
+        </content>
+    </TitledPane>
+
+    <Label fx:id="feedbackLabel" text="" wrapText="true"/>
+
+</VBox>

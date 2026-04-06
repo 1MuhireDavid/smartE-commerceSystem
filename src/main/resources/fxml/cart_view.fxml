@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.CartController"
+      spacing="8" style="-fx-padding: 14;">
+
+    <!-- ── Toolbar ── -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label text="Shopping Carts"
+               style="-fx-font-size: 14; -fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Refresh" onAction="#handleRefresh"/>
+        <Button text="New Cart" onAction="#handleNewCart"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+        <Button fx:id="convertBtn" text="Convert to Order" onAction="#handleConvertToOrder"
+                style="-fx-background-color: #8e44ad; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="deactivateBtn" text="Deactivate" onAction="#handleDeactivate"
+                style="-fx-background-color: #f39c12; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="deleteCartBtn" text="Delete Cart" onAction="#handleDeleteCart"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;" disable="true"/>
+    </HBox>
+
+    <!-- ── Cart list ── -->
+    <TableView fx:id="cartTable" prefHeight="190">
+        <placeholder><Label text="No carts found"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colCartId"  text="ID"       prefWidth="60"/>
+            <TableColumn fx:id="colUser"    text="Customer" prefWidth="200"/>
+            <TableColumn fx:id="colActive"  text="Status"   prefWidth="80"/>
+            <TableColumn fx:id="colUpdated" text="Updated"  prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- ── Cart items header ── -->
+    <HBox spacing="8" alignment="CENTER_LEFT">
+        <Label fx:id="itemsTitle" text="Cart Items"
+               style="-fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="removeItemBtn" text="Remove Item" onAction="#handleRemoveItem"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;" disable="true"/>
+    </HBox>
+
+    <TableView fx:id="itemsTable" prefHeight="150" VBox.vgrow="ALWAYS">
+        <placeholder><Label text="Select a cart to view its items"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colProduct"   text="Product"    prefWidth="240"/>
+            <TableColumn fx:id="colQty"       text="Qty"        prefWidth="60"/>
+            <TableColumn fx:id="colPrice"     text="Unit Price" prefWidth="90"/>
+            <TableColumn fx:id="colLineTotal" text="Line Total" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <!-- ── Add product to selected cart ── -->
+    <HBox fx:id="addProductRow" spacing="8" alignment="CENTER_LEFT"
+          style="-fx-border-color: #2980b9; -fx-border-width: 1; -fx-border-radius: 4; -fx-padding: 8;"
+          disable="true">
+        <Label text="Add product:" style="-fx-font-weight: bold; -fx-text-fill: #2980b9;"/>
+        <ComboBox fx:id="productCombo" prefWidth="220" promptText="Select product"/>
+        <Label text="Qty:"/>
+        <TextField fx:id="addQtyField" prefWidth="60" promptText="1"/>
+        <Button text="Add to Cart" onAction="#handleAddProduct"
+                style="-fx-background-color: #2980b9; -fx-text-fill: white;"/>
+    </HBox>
+
+    <Label fx:id="feedbackLabel" text="" wrapText="true"/>
+
+</VBox>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.ReviewsController"
+      spacing="8" style="-fx-padding: 14;" prefWidth="680" prefHeight="500">
+
+    <Label fx:id="titleLabel" text="Product Reviews"
+           style="-fx-font-size: 14; -fx-font-weight: bold;"/>
+
+    <Label text="Normalized reviews table. Activity logs use JSONB (NoSQL) for unstructured event data."
+           style="-fx-text-fill: #7f8c8d; -fx-font-size: 11;" wrapText="true"/>
+
+    <!-- ── Review table ── -->
+    <TableView fx:id="reviewTable" VBox.vgrow="ALWAYS">
+        <placeholder><Label text="No reviews yet"/></placeholder>
+        <columns>
+            <TableColumn fx:id="colCustomer"  text="Customer"  prefWidth="130"/>
+            <TableColumn fx:id="colRating"    text="Rating"    prefWidth="70"/>
+            <TableColumn fx:id="colVerified"  text="Verified"  prefWidth="75"/>
+            <TableColumn fx:id="colComment"   text="Comment"   prefWidth="300"/>
+            <TableColumn fx:id="colDate"      text="Date"      prefWidth="130"/>
+        </columns>
+    </TableView>
+
+    <!-- ── Add review form ── -->
+    <TitledPane text="Add a Review" expanded="true">
+        <content>
+            <GridPane hgap="10" vgap="8" style="-fx-padding: 8;">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="110" halignment="RIGHT"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Username *" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="customerField" GridPane.rowIndex="0" GridPane.columnIndex="1"
+                           promptText="Registered username" maxWidth="Infinity"/>
+
+                <Label text="Rating (1–5) *"  GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="ratingField" GridPane.rowIndex="1" GridPane.columnIndex="1"
+                           promptText="1 to 5" prefWidth="80"/>
+
+                <Label text="Comment *"           GridPane.rowIndex="2" GridPane.columnIndex="0"
+                       GridPane.valignment="TOP"/>
+                <TextArea fx:id="commentArea"     GridPane.rowIndex="2" GridPane.columnIndex="1"
+                          promptText="Write your review…" prefRowCount="3" wrapText="true"/>
+
+                <Label text="Verified Purchase"           GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <CheckBox fx:id="verifiedCheck"           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+            </GridPane>
+        </content>
+    </TitledPane>
+
+    <Label fx:id="errorLabel" text="" wrapText="true"
+           style="-fx-text-fill: #c0392b; -fx-font-size: 11;"/>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="Submit Review" onAction="#handleAddReview"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+        <Button text="Delete Selected" fx:id="deleteBtn" onAction="#handleDeleteReview"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white;"
+                disable="true"/>
+    </HBox>
+
+</VBox>

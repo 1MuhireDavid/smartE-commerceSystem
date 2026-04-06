@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controller.PerformanceController"
+      spacing="10" style="-fx-padding: 14;">
+
+    <Label text="Performance Benchmark — Caching and Indexing"
+           style="-fx-font-size: 15; -fx-font-weight: bold;"/>
+
+    <Label text="This tool runs repeated search queries with and without the in-memory cache and database index, then reports the speedup."
+           wrapText="true" style="-fx-text-fill: #555;"/>
+
+    <!-- ── Config row ── -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Search keyword:"/>
+        <TextField fx:id="keywordField" promptText="e.g. Samsung" prefWidth="200"/>
+        <Button text="Run Benchmark" onAction="#handleRunBenchmark"
+                style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        <ProgressIndicator fx:id="progressIndicator" prefWidth="24" prefHeight="24" visible="false"/>
+    </HBox>
+
+    <!-- ── Results table ── -->
+    <TableView fx:id="resultsTable" prefHeight="160">
+        <placeholder><Label text="Run a benchmark to see results."/></placeholder>
+        <columns>
+            <TableColumn fx:id="colLabel"    text="Scenario"          prefWidth="200"/>
+            <TableColumn fx:id="colTotal"    text="Total (ms)"        prefWidth="110"/>
+            <TableColumn fx:id="colAvg"      text="Avg / query (ms)"  prefWidth="140"/>
+            <TableColumn fx:id="colCount"    text="Results returned"  prefWidth="140"/>
+        </columns>
+    </TableView>
+
+    <!-- ── Summary text area ── -->
+    <Label text="Full Report:" style="-fx-font-weight: bold;"/>
+    <TextArea fx:id="reportArea" VBox.vgrow="ALWAYS" editable="false"
+              style="-fx-font-family: 'Consolas', monospace; -fx-font-size: 12;"
+              wrapText="true"/>
+
+    <Label fx:id="feedbackLabel" text="" style="-fx-text-fill: #c0392b;"/>
+
+</VBox>
