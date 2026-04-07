@@ -18,7 +18,7 @@ public class OrderService {
     private static final String SEARCH_PFX = "orders:search:";
 
     public static final List<String> ORDER_STATUSES =
-        List.of("pending", "processing", "shipped", "delivered", "cancelled");
+        List.of("pending", "processing", "completed", "cancelled");
 
     // ── Create (transactional: order + items atomically) ──────────────────────
 
@@ -61,6 +61,11 @@ public class OrderService {
 
     public Order getById(long orderId) throws SQLException {
         return dao.findById(orderId);
+    }
+
+    /** Always fetches fresh — no cache — feeds the payment form dropdown. */
+    public List<Order> getUnpaid() throws SQLException {
+        return dao.findUnpaid();
     }
 
     public List<OrderItem> getItemsForOrder(long orderId) throws SQLException {

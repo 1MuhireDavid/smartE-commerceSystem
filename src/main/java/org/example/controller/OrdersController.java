@@ -66,12 +66,42 @@ public class OrdersController {
             new SimpleStringProperty(c.getValue().getUserFullName()));
         colStatus.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getStatus()));
+        colStatus.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) { setText(null); setStyle(""); return; }
+                setText(status);
+                String color = switch (status) {
+                    case "processing" -> "#2980b9";
+                    case "shipped"    -> "#8e44ad";
+                    case "delivered"  -> "#27ae60";
+                    case "cancelled"  -> "#e74c3c";
+                    default           -> "#f39c12";
+                };
+                setStyle("-fx-background-color:" + color + ";-fx-text-fill:white;"
+                       + "-fx-background-radius:4;-fx-padding:2 8;");
+            }
+        });
         colTotal.setCellValueFactory(c -> {
             var amt = c.getValue().getTotalAmount();
-            return new SimpleStringProperty(amt == null ? "—" : String.format("$%,.2f", amt));
+            return new SimpleStringProperty(amt == null ? "—" : String.format("%,.2f", amt));
         });
         colPayment.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getPaymentStatus()));
+        colPayment.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) { setText(null); setStyle(""); return; }
+                setText(status);
+                String color = switch (status) {
+                    case "paid"     -> "#27ae60";
+                    case "refunded" -> "#8e44ad";
+                    default         -> "#f39c12";
+                };
+                setStyle("-fx-background-color:" + color + ";-fx-text-fill:white;"
+                       + "-fx-background-radius:4;-fx-padding:2 8;");
+            }
+        });
         colDate.setCellValueFactory(c -> {
             var dt = c.getValue().getOrderedAt();
             return new SimpleStringProperty(dt == null ? "" : dt.format(FMT));

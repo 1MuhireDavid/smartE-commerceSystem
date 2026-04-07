@@ -56,8 +56,8 @@
                 <fx:include source="cart_view.fxml"/>
             </Tab>
 
-            <Tab text="Payments">
-                <fx:include source="payment_view.fxml"/>
+            <Tab fx:id="paymentTab" text="Payments">
+                <fx:include fx:id="payment" source="payment_view.fxml"/>
             </Tab>
 
         </TabPane>

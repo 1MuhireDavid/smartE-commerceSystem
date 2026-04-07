@@ -11,8 +11,10 @@ import org.example.service.PaymentService;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 public class PaymentController {
 
@@ -60,23 +62,17 @@ public class PaymentController {
                 updateStatusBtn.setDisable(!has);
             });
 
-        // Load orders for the create form
+        // Load unpaid orders for the create form
         try {
-            orderCombo.setItems(FXCollections.observableArrayList(orderService.getAll()));
+            orderCombo.setItems(FXCollections.observableArrayList(orderService.getUnpaid()));
         } catch (SQLException e) {
             feedback("Failed to load orders: " + e.getMessage(), true);
         }
 
-        // Reload orders fresh every time the dropdown opens
+        // Reload unpaid orders fresh every time the dropdown opens
         orderCombo.setOnShowing(e -> {
             try {
-                Order current = orderCombo.getValue();
-                orderCombo.setItems(FXCollections.observableArrayList(orderService.getAll()));
-                if (current != null)
-                    orderCombo.getItems().stream()
-                        .filter(o -> o.getOrderId() == current.getOrderId())
-                        .findFirst()
-                        .ifPresent(orderCombo::setValue);
+                orderCombo.setItems(FXCollections.observableArrayList(orderService.getUnpaid()));
             } catch (SQLException ex) {
                 feedback("Failed to refresh orders: " + ex.getMessage(), true);
             }
@@ -92,6 +88,17 @@ public class PaymentController {
         loadAll();
     }
 
+    /** Called by MainController whenever the Payments tab is selected. */
+    public void refresh() {
+        orderService.clearCache();   // bust stale cache on this instance
+        try {
+            orderCombo.setItems(FXCollections.observableArrayList(orderService.getUnpaid()));
+        } catch (SQLException e) {
+            feedback("Failed to refresh orders: " + e.getMessage(), true);
+        }
+        loadAll();
+    }
+
     // ── Columns ───────────────────────────────────────────────────────────────
 
     private void setupColumns() {
@@ -103,10 +110,25 @@ public class PaymentController {
             new SimpleStringProperty(c.getValue().getPaymentMethod()));
         colAmount.setCellValueFactory(c -> {
             var a = c.getValue().getAmount();
-            return new SimpleStringProperty(a == null ? "" : "$" + String.format("%,.2f", a));
+            return new SimpleStringProperty(a == null ? "" : " " + String.format("%,.2f", a));
         });
         colStatus.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getStatus()));
+        colStatus.setCellFactory(col -> new TableCell<>() {
+            @Override protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) { setText(null); setStyle(""); return; }
+                setText(status);
+                String color = switch (status) {
+                    case "completed" -> "#27ae60";
+                    case "failed"    -> "#e74c3c";
+                    case "refunded"  -> "#8e44ad";
+                    default          -> "#f39c12";
+                };
+                setStyle("-fx-background-color:" + color + ";-fx-text-fill:white;"
+                       + "-fx-background-radius:4;-fx-padding:2 8;");
+            }
+        });
         colTxId  .setCellValueFactory(c -> {
             String tx = c.getValue().getTransactionId();
             return new SimpleStringProperty(tx == null ? "—" : tx);
@@ -165,16 +187,27 @@ public class PaymentController {
         Payment p = new Payment();
         p.setOrderId(order.getOrderId());
         p.setPaymentMethod(methodCombo.getValue());
+
         String tx = txIdField.getText().trim();
-        p.setTransactionId(tx.isEmpty() ? null : tx);
+        if (tx.isEmpty()) {
+            tx = "TXN-" + UUID.randomUUID().toString()
+                              .replace("-", "")
+                              .substring(0, 12)
+                              .toUpperCase();
+        }
+        p.setTransactionId(tx);
         p.setAmount(amount);
-        p.setStatus("pending");
+        p.setStatus("completed");
+        p.setPaidAt(LocalDateTime.now());
 
         try {
             service.record(p);
+            orderService.updatePaymentStatus(order.getOrderId(), "paid");
+            orderService.updateStatus(order.getOrderId(), "completed");
+            orderCombo.setItems(FXCollections.observableArrayList(orderService.getUnpaid()));
             clearForm();
             loadAll();
-            feedback("Payment recorded (ID " + p.getPaymentId() + ").", false);
+            feedback("Payment recorded — Tx: " + p.getTransactionId(), false);
         } catch (SQLException e) {
             feedback("Failed to record payment: " + e.getMessage(), true);
         }
