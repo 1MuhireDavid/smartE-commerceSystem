@@ -1,0 +1,206 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Smart E-Commerce — GraphQL Schema
+#  Endpoint : POST /graphql
+#  Explorer : GET  /graphiql  (dev only)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Core types ────────────────────────────────────────────────────────────────
+
+type User {
+    userId:    ID!
+    username:  String!
+    email:     String!
+    fullName:  String!
+    phone:     String
+    role:      String!
+    active:    Boolean!
+    createdAt: String
+    updatedAt: String
+}
+
+type Category {
+    categoryId:   ID!
+    name:         String!
+    slug:         String!
+    parent:       Category       # null for top-level categories
+    active:       Boolean!
+    displayOrder: Int!
+}
+
+type Inventory {
+    qtyInStock:  Int!
+    reservedQty: Int!
+    reorderLevel: Int!
+    lastUpdated: String
+}
+
+type Product {
+    productId:     ID!
+    name:          String!
+    slug:          String!
+    description:   String
+    basePrice:     Float!
+    discountPrice: Float
+    effectivePrice: Float!       # discountPrice if set, otherwise basePrice
+    status:        String!
+    avgRating:     Float!
+    reviewCount:   Int!
+    seller:        User
+    category:      Category
+    inventory:     Inventory
+    createdAt:     String
+    updatedAt:     String
+}
+
+# ── Paginated result types ─────────────────────────────────────────────────────
+
+type UserPage {
+    content:       [User!]!
+    page:          Int!
+    size:          Int!
+    totalElements: Int!
+    totalPages:    Int!
+    last:          Boolean!
+}
+
+type ProductPage {
+    content:       [Product!]!
+    page:          Int!
+    size:          Int!
+    totalElements: Int!
+    totalPages:    Int!
+    last:          Boolean!
+}
+
+type CategoryPage {
+    content:       [Category!]!
+    page:          Int!
+    size:          Int!
+    totalElements: Int!
+    totalPages:    Int!
+    last:          Boolean!
+}
+
+# ── Filter input types ─────────────────────────────────────────────────────────
+
+input UserFilter {
+    keyword: String       # partial match on fullName, email, username
+    role:    String       # customer | seller | admin
+    active:  Boolean
+}
+
+input ProductFilter {
+    keyword:    String    # partial match on name
+    categoryId: Int
+    status:     String    # active | inactive | draft
+    sellerId:   ID
+}
+
+input CategoryFilter {
+    keyword: String       # partial match on name
+    active:  Boolean
+}
+
+# ── Mutation input types ───────────────────────────────────────────────────────
+
+input UserInput {
+    username: String!
+    email:    String!
+    password: String!
+    fullName: String!
+    phone:    String
+    role:     String  = "customer"
+    active:   Boolean = true
+}
+
+input CategoryInput {
+    name:         String!
+    slug:         String!
+    parentId:     Int
+    active:       Boolean = true
+    displayOrder: Int     = 0
+}
+
+input ProductInput {
+    name:          String!
+    slug:          String!
+    description:   String
+    basePrice:     Float!
+    discountPrice: Float
+    sellerId:      ID!
+    categoryId:    Int
+    status:        String = "draft"
+    stockQuantity: Int    = 0
+    reorderLevel:  Int    = 10
+}
+
+# ── Queries ───────────────────────────────────────────────────────────────────
+
+type Query {
+
+    "Look up a single user by ID. Returns null if not found."
+    user(id: ID!): User
+
+    "Paginated, filterable user list."
+    users(
+        filter:  UserFilter
+        page:    Int    = 0
+        size:    Int    = 20
+        sortBy:  String = "createdAt"
+        sortDir: String = "desc"
+    ): UserPage!
+
+    "Look up a single product by ID. Returns null if not found."
+    product(id: ID!): Product
+
+    "Paginated, filterable, sortable product catalog."
+    products(
+        filter:  ProductFilter
+        page:    Int    = 0
+        size:    Int    = 20
+        sortBy:  String = "createdAt"
+        sortDir: String = "desc"
+    ): ProductPage!
+
+    "Look up a single category by ID. Returns null if not found."
+    category(id: ID!): Category
+
+    "Paginated, filterable category list, ordered by displayOrder then name."
+    categories(
+        filter: CategoryFilter
+        page:   Int = 0
+        size:   Int = 20
+    ): CategoryPage!
+}
+
+# ── Mutations ─────────────────────────────────────────────────────────────────
+
+type Mutation {
+
+    "Create a new user. Email and username must be unique."
+    createUser(input: UserInput!): User!
+
+    "Replace all mutable fields of a user. Omit password to leave it unchanged."
+    updateUser(id: ID!, input: UserInput!): User!
+
+    "Permanently delete a user."
+    deleteUser(id: ID!): Boolean!
+
+    "Create a new product with an initial inventory record."
+    createProduct(input: ProductInput!): Product!
+
+    "Replace all mutable fields of a product and its inventory."
+    updateProduct(id: ID!, input: ProductInput!): Product!
+
+    "Permanently delete a product (cascades to inventory)."
+    deleteProduct(id: ID!): Boolean!
+
+    "Create a new category. Slug must be unique."
+    createCategory(input: CategoryInput!): Category!
+
+    "Replace all mutable fields of a category."
+    updateCategory(id: ID!, input: CategoryInput!): Category!
+
+    "Delete a category. Linked products will have their category set to null."
+    deleteCategory(id: ID!): Boolean!
+}

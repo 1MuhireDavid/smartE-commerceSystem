@@ -1,0 +1,97 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: smart-ecommerce-api
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: true          # overridden to false in prod
+      path: /graphiql
+    schema:
+      printer:
+        enabled: true        # exposes schema at /graphql/schema
+
+server:
+  port: 8080
+
+# ── AOP monitoring ────────────────────────────────────────────────────────────
+monitoring:
+  # Service methods that take longer than this threshold are logged as WARN
+  slow-method-threshold-ms: 500
+
+---
+# ── DEV profile ──────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_ecommerce
+    username: postgres
+    password: rwanda
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.example.api: DEBUG
+    org.hibernate.SQL: DEBUG
+
+---
+# ── TEST profile ──────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_ecommerce_test
+    username: postgres
+    password: rwanda
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+logging:
+  level:
+    org.example.api: INFO
+
+---
+# ── PROD profile ──────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  graphql:
+    graphiql:
+      enabled: false         # disable interactive UI in production
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: WARN
+    org.example.api: INFO
