@@ -9,9 +9,12 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.model.Order;
+import org.example.model.Payment;
 import org.example.service.OrderService;
+import org.example.service.PaymentService;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -29,11 +32,13 @@ public class OrdersController {
     @FXML private TableColumn<Order, String> colPayment;
     @FXML private TableColumn<Order, String> colDate;
     @FXML private Button viewBtn;
+    @FXML private Button payBtn;
     @FXML private Button updateStatusBtn;
     @FXML private Button deleteBtn;
     @FXML private Label  feedbackLabel;
 
-    private final OrderService service = new OrderService();
+    private final OrderService   service        = new OrderService();
+    private final PaymentService paymentService = new PaymentService();
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @FXML
@@ -42,8 +47,10 @@ public class OrdersController {
         setupColumns();
         orderTable.getSelectionModel().selectedItemProperty().addListener(
             (obs, old, sel) -> {
-                boolean has = sel != null;
+                boolean has  = sel != null;
+                boolean paid = has && "paid".equals(sel.getPaymentStatus());
                 viewBtn.setDisable(!has);
+                payBtn.setDisable(!has || paid);
                 updateStatusBtn.setDisable(!has);
                 deleteBtn.setDisable(!has);
             });
@@ -160,6 +167,74 @@ public class OrdersController {
             showError("Could not open create order dialog: " + cause.getClass().getSimpleName() + ": " + cause.getMessage());
             e.printStackTrace();
         }
+    }
+
+    @FXML
+    private void handleRecordPayment() {
+        Order order = orderTable.getSelectionModel().getSelectedItem();
+        if (order == null) return;
+
+        // ── Build dialog ──────────────────────────────────────────────────────
+        ComboBox<String> methodCombo = new ComboBox<>(
+            FXCollections.observableArrayList(PaymentService.METHODS));
+        methodCombo.setValue("card");
+        methodCombo.setPrefWidth(140);
+
+        TextField amountField = new TextField(
+            order.getTotalAmount() != null ? order.getTotalAmount().toPlainString() : "");
+        amountField.setPrefWidth(130);
+        amountField.setPromptText("Amount");
+
+        TextField txIdField = new TextField();
+        txIdField.setPrefWidth(160);
+        txIdField.setPromptText("Transaction ID (optional)");
+
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10); grid.setVgap(8);
+        grid.addRow(0, new Label("Order:"),  new Label(order.getOrderNumber()
+            + "  |  " + order.getUserFullName()));
+        grid.addRow(1, new Label("Method:"), methodCombo);
+        grid.addRow(2, new Label("Amount:"), amountField);
+        grid.addRow(3, new Label("Tx ID:"),  txIdField);
+
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Record Payment");
+        dlg.setHeaderText("Record payment for " + order.getOrderNumber());
+        dlg.getDialogPane().setContent(grid);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.initOwner(orderTable.getScene().getWindow());
+
+        dlg.showAndWait().ifPresent(btn -> {
+            if (btn != ButtonType.OK) return;
+
+            BigDecimal amount;
+            try {
+                amount = new BigDecimal(amountField.getText().trim());
+                if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    showError("Amount must be greater than 0."); return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Invalid amount."); return;
+            }
+
+            Payment p = new Payment();
+            p.setOrderId(order.getOrderId());
+            p.setPaymentMethod(methodCombo.getValue());
+            String tx = txIdField.getText().trim();
+            p.setTransactionId(tx.isEmpty() ? null : tx);
+            p.setAmount(amount);
+            p.setStatus("completed");
+
+            try {
+                paymentService.record(p);
+                // Mark order as paid immediately
+                service.updatePaymentStatus(order.getOrderId(), "paid");
+                showSuccess("Payment recorded. Order marked as paid.");
+                loadData(searchField.getText(), statusFilter.getValue());
+            } catch (SQLException e) {
+                showError("Payment failed: " + e.getMessage());
+            }
+        });
     }
 
     @FXML

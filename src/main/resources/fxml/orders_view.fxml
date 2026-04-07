@@ -23,6 +23,8 @@
                 style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
         <Button fx:id="viewBtn"         text="View Details"    onAction="#handleView"
                 style="-fx-background-color: #8e44ad; -fx-text-fill: white;" disable="true"/>
+        <Button fx:id="payBtn"          text="Record Payment"  onAction="#handleRecordPayment"
+                style="-fx-background-color: #16a085; -fx-text-fill: white;" disable="true"/>
         <Button fx:id="updateStatusBtn" text="Update Status"   onAction="#handleUpdateStatus"
                 style="-fx-background-color: #f39c12; -fx-text-fill: white;" disable="true"/>
         <Button fx:id="deleteBtn"       text="Delete"          onAction="#handleDeleteOrder"
