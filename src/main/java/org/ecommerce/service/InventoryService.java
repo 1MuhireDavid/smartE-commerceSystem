@@ -11,7 +11,7 @@ public class InventoryService {
 
     private final InventoryDAO dao = new InventoryDAO();
 
-    private final InMemoryCache<String, List<Inventory>> cache = new InMemoryCache<>();
+    private static final InMemoryCache<String, List<Inventory>> cache = new InMemoryCache<>();
     private static final String ALL_KEY    = "inventory:all";
     private static final String LOW_KEY    = "inventory:low";
     private static final String SEARCH_PFX = "inventory:search:";
@@ -43,9 +43,6 @@ public class InventoryService {
         return fresh;
     }
 
-    public Inventory getByProductId(long id) throws SQLException {
-        return dao.findByProductId(id);
-    }
 
     public int countLowStock() throws SQLException {
         return dao.countLowStock();
@@ -58,15 +55,37 @@ public class InventoryService {
         if (reorderLevel < 0) throw new IllegalArgumentException("Reorder level cannot be negative.");
         dao.updateStock(productId, qty, reorderLevel);
         cache.clear();
+        ActivityLogService.get().log(null, "stock_updated",
+                "product_id", productId, "qty", qty, "reorder_level", reorderLevel);
     }
 
     public void adjustStock(long productId, int delta) throws SQLException {
         dao.adjustStock(productId, delta);
         cache.clear();
+        ActivityLogService.get().log(null, "stock_adjusted",
+                "product_id", productId, "delta", delta);
     }
 
-    // ── Cache info ────────────────────────────────────────────────────────────
+    public void reserveStock(long productId, int qty) throws SQLException {
+        int updated = dao.reserveStock(productId, qty);
+        if (updated == 0)
+            throw new IllegalStateException("Insufficient available stock for product ID " + productId);
+        cache.clear();
+    }
 
-    public int  getCacheSize() { return cache.size(); }
+    public void releaseReservation(long productId, int qty) throws SQLException {
+        dao.releaseReservation(productId, qty);
+        cache.clear();
+        ActivityLogService.get().log(null, "stock_released",
+                "product_id", productId, "qty", qty);
+    }
+
+    public void fulfillReservation(long productId, int qty) throws SQLException {
+        dao.fulfillReservation(productId, qty);
+        cache.clear();
+        ActivityLogService.get().log(null, "stock_fulfilled",
+                "product_id", productId, "qty", qty);
+    }
+
     public void clearCache()   { cache.clear(); }
 }

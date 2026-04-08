@@ -34,7 +34,6 @@ public class Product {
     public long       getSellerId()                  { return sellerId; }
     public void       setSellerId(long sellerId)     { this.sellerId = sellerId; }
 
-    public String     getSellerName()                { return sellerName; }
     public void       setSellerName(String s)        { this.sellerName = s; }
 
     public int        getCategoryId()                { return categoryId; }
@@ -69,25 +68,20 @@ public class Product {
     public String     getStatus()                    { return status; }
     public void       setStatus(String status)       { this.status = status; }
 
-    public BigDecimal getAvgRating()                 { return avgRating; }
     public void       setAvgRating(BigDecimal r)     { this.avgRating = r; }
 
-    public int        getReviewCount()               { return reviewCount; }
     public void       setReviewCount(int n)          { this.reviewCount = n; }
 
     public int        getStockQuantity()             { return stockQuantity; }
     public void       setStockQuantity(int q)        { this.stockQuantity = q; }
 
-    public int        getReservedQty()               { return reservedQty; }
     public void       setReservedQty(int q)          { this.reservedQty = q; }
 
-    public int        getReorderLevel()              { return reorderLevel; }
     public void       setReorderLevel(int l)         { this.reorderLevel = l; }
 
     public LocalDateTime getCreatedAt()              { return createdAt; }
     public void       setCreatedAt(LocalDateTime t)  { this.createdAt = t; }
 
-    public LocalDateTime getUpdatedAt()              { return updatedAt; }
     public void       setUpdatedAt(LocalDateTime t)  { this.updatedAt = t; }
 
     @Override public String toString() { return name; }

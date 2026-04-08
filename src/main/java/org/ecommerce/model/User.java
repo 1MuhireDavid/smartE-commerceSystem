@@ -64,7 +64,6 @@ public class User {
     public LocalDateTime getCreatedAt()               { return createdAt; }
     public void    setCreatedAt(LocalDateTime t)      { this.createdAt = t; }
 
-    public LocalDateTime getUpdatedAt()               { return updatedAt; }
     public void    setUpdatedAt(LocalDateTime t)      { this.updatedAt = t; }
 
     @Override public String toString() { return fullName + " (" + username + ")"; }

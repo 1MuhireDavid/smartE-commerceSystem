@@ -20,6 +20,8 @@ public class CategoryService {
         category.setSlug(slug);
         Category saved = dao.insert(category);
         cache.clear();
+        ActivityLogService.get().log(null, "category_created",
+                "category_id", saved.getId(), "name", saved.getName());
         return saved;
     }
 
@@ -39,7 +41,6 @@ public class CategoryService {
         return fresh;
     }
 
-    public Category getById(int id) throws SQLException { return dao.findById(id); }
 
     public void update(Category category) throws SQLException, IllegalArgumentException {
         String slug = CategoryDAO.slugify(category.getName());
@@ -49,10 +50,13 @@ public class CategoryService {
         category.setSlug(slug);
         dao.update(category);
         cache.clear();
+        ActivityLogService.get().log(null, "category_updated",
+                "category_id", category.getId(), "name", category.getName());
     }
 
     public void delete(int id) throws SQLException {
         dao.delete(id);
         cache.clear();
+        ActivityLogService.get().log(null, "category_deleted", "category_id", id);
     }
 }

@@ -46,8 +46,6 @@ public class Category {
     public int     getDisplayOrder()             { return displayOrder; }
     public void    setDisplayOrder(int order)    { this.displayOrder = order; }
 
-    public LocalDateTime getCreatedAt()          { return createdAt; }
-    public void    setCreatedAt(LocalDateTime t) { this.createdAt = t; }
 
     @Override public String toString()           { return name; }
 }

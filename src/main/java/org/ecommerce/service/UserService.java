@@ -21,6 +21,10 @@ public class UserService {
             throw new IllegalArgumentException("Email \"" + user.getEmail() + "\" is already registered.");
         User saved = dao.insert(user);
         cache.clear();
+        ActivityLogService.get().log(saved.getUserId(), "user_created",
+                "user_id", saved.getUserId(),
+                "username", saved.getUsername(),
+                "role", saved.getRole());
         return saved;
     }
 
@@ -61,6 +65,8 @@ public class UserService {
             throw new IllegalArgumentException("Email \"" + user.getEmail() + "\" is already registered.");
         dao.update(user);
         cache.clear();
+        ActivityLogService.get().log(user.getUserId(), "user_updated",
+                "user_id", user.getUserId(), "username", user.getUsername());
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -68,5 +74,6 @@ public class UserService {
     public void delete(long id) throws SQLException {
         dao.delete(id);
         cache.clear();
+        ActivityLogService.get().log(null, "user_deleted", "user_id", id);
     }
 }

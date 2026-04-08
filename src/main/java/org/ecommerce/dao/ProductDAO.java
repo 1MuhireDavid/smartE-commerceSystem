@@ -125,17 +125,6 @@ public class ProductDAO {
         return list;
     }
 
-    public Product findById(long id) throws SQLException {
-        String sql = BASE_SELECT + " WHERE p.product_id = ?";
-        try (PreparedStatement ps = conn().prepareStatement(sql)) {
-            ps.setLong(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return map(rs);
-            }
-        }
-        return null;
-    }
-
     public int count() throws SQLException {
         try (Statement st = conn().createStatement();
              ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM products")) {

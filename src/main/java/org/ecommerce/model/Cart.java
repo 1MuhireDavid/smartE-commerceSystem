@@ -27,7 +27,7 @@ public class Cart {
     public boolean       isActive()                         { return active; }
     public void          setActive(boolean active)          { this.active = active; }
 
-    public LocalDateTime getCreatedAt()                     { return createdAt; }
+
     public void          setCreatedAt(LocalDateTime t)      { this.createdAt = t; }
 
     public LocalDateTime getUpdatedAt()                     { return updatedAt; }

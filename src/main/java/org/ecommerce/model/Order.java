@@ -54,7 +54,7 @@ public class Order {
     public LocalDateTime getOrderedAt()                  { return orderedAt; }
     public void       setOrderedAt(LocalDateTime t)      { this.orderedAt = t; }
 
-    public LocalDateTime getUpdatedAt()                  { return updatedAt; }
+
     public void       setUpdatedAt(LocalDateTime t)      { this.updatedAt = t; }
 
     public List<OrderItem> getItems()                    { return items; }

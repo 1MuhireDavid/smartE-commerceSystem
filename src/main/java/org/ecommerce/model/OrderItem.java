@@ -15,7 +15,7 @@ public class OrderItem {
 
     public OrderItem() {}
 
-    public long       getOrderItemId()                    { return orderItemId; }
+
     public void       setOrderItemId(long id)             { this.orderItemId = id; }
 
     public long       getOrderId()                        { return orderId; }

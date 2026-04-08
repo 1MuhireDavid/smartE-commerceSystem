@@ -1,5 +1,7 @@
 package org.ecommerce.config;
 
+import org.ecommerce.exception.PropertiesNotFoundException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -9,7 +11,7 @@ import java.util.Properties;
 
 /**
  * Provides a single shared database connection loaded from db.properties.
- * For a production system a proper connection pool (HikariCP) would replace this.
+ * For a production system a proper connection pool would replace this.
  */
 public class DatabaseConfig {
 
@@ -25,13 +27,13 @@ public class DatabaseConfig {
         try (InputStream in = getClass().getClassLoader()
                 .getResourceAsStream("db.properties")) {
             if (in == null) {
-                throw new RuntimeException(
+                throw new PropertiesNotFoundException(
                     "db.properties not found on classpath. " +
                     "Copy src/main/resources/db.properties and fill in your credentials.");
             }
             props.load(in);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load db.properties", e);
+            throw new PropertiesNotFoundException("Failed to load db.properties", e);
         }
         url      = props.getProperty("db.url");
         username = props.getProperty("db.username");
@@ -53,7 +55,6 @@ public class DatabaseConfig {
         return connection;
     }
 
-    // ── Transaction support ───────────────────────────────────────────────────
 
     public void beginTransaction() throws SQLException {
         getConnection().setAutoCommit(false);

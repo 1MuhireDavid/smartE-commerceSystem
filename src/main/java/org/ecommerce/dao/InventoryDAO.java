@@ -98,6 +98,52 @@ public class InventoryDAO {
         }
     }
 
+    /** Reserve stock for a pending order. Returns 0 if available qty is insufficient. */
+    public int reserveStock(long productId, int qty) throws SQLException {
+        String sql = """
+                UPDATE inventory
+                SET    reserved_qty = reserved_qty + ?
+                WHERE  product_id = ?
+                  AND  (qty_in_stock - reserved_qty) >= ?
+                """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setInt(1, qty);
+            ps.setLong(2, productId);
+            ps.setInt(3, qty);
+            return ps.executeUpdate();
+        }
+    }
+
+    /** Release a reservation when an order is cancelled. */
+    public void releaseReservation(long productId, int qty) throws SQLException {
+        String sql = """
+                UPDATE inventory
+                SET    reserved_qty = GREATEST(0, reserved_qty - ?)
+                WHERE  product_id = ?
+                """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setInt(1, qty);
+            ps.setLong(2, productId);
+            ps.executeUpdate();
+        }
+    }
+
+    /** Deduct from both qty_in_stock and reserved_qty when an order is completed. */
+    public void fulfillReservation(long productId, int qty) throws SQLException {
+        String sql = """
+                UPDATE inventory
+                SET    qty_in_stock = GREATEST(0, qty_in_stock - ?),
+                       reserved_qty = GREATEST(0, reserved_qty - ?)
+                WHERE  product_id = ?
+                """;
+        try (PreparedStatement ps = conn().prepareStatement(sql)) {
+            ps.setInt(1, qty);
+            ps.setInt(2, qty);
+            ps.setLong(3, productId);
+            ps.executeUpdate();
+        }
+    }
+
     // ── Report: low stock count ───────────────────────────────────────────────
 
     public int countLowStock() throws SQLException {

@@ -73,17 +73,36 @@ src/
 │   │   ├── model/
 │   │   │   ├── Category.java
 │   │   │   ├── Product.java
+│   │   │   └── Cart.java                   
 │   │   │   └── Review.java                   # JSONB-backed review model
+│   │   │   └── CartItem.java                   
+│   │   │   └── Inventory.java                   
+│   │   │   └── Order.java                   
+│   │   │   └── OrderItem.java                   
+│   │   │   └── Payment.java                  
+│   │   │   └── User.java                   
+│   │   │   └── ActivityLog.java                   
+
 │   │   ├── dao/
 │   │   │   ├── CategoryDAO.java              # Parameterised CRUD for categories
 │   │   │   ├── ProductDAO.java               # CRUD + search + pagination
 │   │   │   └── ReviewDAO.java                # JSONB insert/query
+│   │   │   └── ActivityLogDAO.java           
+│   │   │   └── Order.java                    
+│   │   │   └── PaymentDAO.java               
+│   │   │   └── Inventory.java                
+│   │   │   └── UserDAO.java       
+           
+│   │   ├── exception/
+│   │   │   └── PropertiesNotFoundException.java            # Exception Handling
+
 │   │   ├── cache/
 │   │   │   └── InMemoryCache.java            # Generic TTL ConcurrentHashMap cache
 │   │   ├── service/
 │   │   │   ├── CategoryService.java          # Business logic + cache integration
 │   │   │   ├── ProductService.java           # Search, sort, cache invalidation
 │   │   │   └── PerformanceService.java       # Benchmark runner
+
 │   │   ├── controller/
 │   │   │   ├── MainController.java
 │   │   │   ├── ProductController.java        # Products tab + search/sort/pagination
@@ -97,7 +116,7 @@ src/
 │   └── resources/
 │       ├── db.properties                     # DB connection config
 │       ├── schema.sql                        # DDL + indexes + trigger
-│       ├── sample_data.sql                   # 22 products across 7 categories
+│       ├── sample_data.sql                   
 │       └── fxml/
 │           ├── main.fxml
 │           ├── product_view.fxml

@@ -52,8 +52,12 @@ public class ProductDialogController {
             errorLabel.setText("Seller is required.");
             return false;
         }
+        if (categoryCombo.getValue() == null) {
+            errorLabel.setText("Category is required.");
+            return false;
+        }
         List<String> errors = ValidationUtil.validateProduct(
-            nameField.getText(), priceField.getText(), stockField.getText(), null);
+            nameField.getText(), priceField.getText(), stockField.getText(), categoryCombo.getValue() != null ? categoryCombo.getValue().toString() : null);
         if (!errors.isEmpty()) {
             errorLabel.setText(ValidationUtil.joinErrors(errors));
             return false;

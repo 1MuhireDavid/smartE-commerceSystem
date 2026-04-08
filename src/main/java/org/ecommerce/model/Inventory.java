@@ -15,7 +15,6 @@ public class Inventory {
 
     public Inventory() {}
 
-    public long   getInventoryId()                      { return inventoryId; }
     public void   setInventoryId(long id)               { this.inventoryId = id; }
 
     public long   getProductId()                        { return productId; }

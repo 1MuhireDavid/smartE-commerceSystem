@@ -22,6 +22,8 @@ public class ProductService {
     public Product add(Product product) throws SQLException {
         Product saved = dao.insert(product);
         cache.clear();
+        ActivityLogService.get().log(null, "product_created",
+                "product_id", saved.getId(), "name", saved.getName());
         return saved;
     }
 
@@ -44,7 +46,6 @@ public class ProductService {
         return results;
     }
 
-    public Product getById(long id) throws SQLException { return dao.findById(id); }
 
     public int getTotalCount()                     throws SQLException { return dao.count(); }
     public List<Product> getPage(int sz, int off)  throws SQLException { return dao.findPage(sz, off); }
@@ -75,6 +76,8 @@ public class ProductService {
         dao.update(product);
         cache.clear();
         inventoryService.clearCache();
+        ActivityLogService.get().log(null, "product_updated",
+                "product_id", product.getId(), "name", product.getName());
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -82,11 +85,11 @@ public class ProductService {
     public void delete(long id) throws SQLException {
         dao.delete(id);
         cache.clear();
+        ActivityLogService.get().log(null, "product_deleted", "product_id", id);
     }
 
     // ── Cache info ────────────────────────────────────────────────────────────
 
-    public int  getCacheSize() { return cache.size(); }
     public void clearCache()   { cache.clear(); }
 
     private String normalize(String s) { return s == null ? "" : s.trim().toLowerCase(); }

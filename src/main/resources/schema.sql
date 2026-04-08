@@ -65,10 +65,11 @@ CREATE TABLE products (
     updated_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_products_name_btree  ON products (lower(name));
-CREATE INDEX idx_products_name_fts    ON products USING gin (to_tsvector('english', name));
+CREATE INDEX idx_products_name_fts    ON products USING gin (to_tsvector('english', coalesce(name,'') || ' ' || coalesce(description,'')));
 CREATE INDEX idx_products_category_id ON products (category_id);
 CREATE INDEX idx_products_seller_id   ON products (seller_id);
-CREATE INDEX idx_products_status      ON products (status);
+CREATE INDEX idx_products_status      ON products (category_id, status);
+CREATE INDEX idx_products_active_only ON products (category_id) WHERE status = 'active';
 
 -- ─── inventory ────────────────────────────────────────────────────────────────
 CREATE TABLE inventory (
@@ -162,7 +163,7 @@ CREATE TABLE reviews (
     body        TEXT,
     is_approved BOOLEAN    NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_user_product_order UNIQUE (user_id, product_id, order_id)
+    CONSTRAINT uq_user_product_order UNIQUE (user_id, product_id)
 );
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE INDEX idx_reviews_user_id    ON reviews (user_id);

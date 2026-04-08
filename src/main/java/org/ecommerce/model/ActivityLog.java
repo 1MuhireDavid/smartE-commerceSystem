@@ -35,7 +35,7 @@ public class ActivityLog {
     public Long          getUserId()                     { return userId; }
     public void          setUserId(Long userId)          { this.userId = userId; }
 
-    public String        getUserName()                   { return userName; }
+
     public void          setUserName(String n)           { this.userName = n; }
 
     public String        getEventType()                  { return eventType; }

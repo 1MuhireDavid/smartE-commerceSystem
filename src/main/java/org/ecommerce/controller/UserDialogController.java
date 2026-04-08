@@ -4,6 +4,9 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.ecommerce.model.User;
+import org.ecommerce.util.ValidationUtil;
+
+import java.util.List;
 
 public class UserDialogController {
 
@@ -37,33 +40,13 @@ public class UserDialogController {
 
     /** Returns true if all required fields are valid; shows inline error otherwise. */
     public boolean validate() {
-        String name  = fullNameField.getText().trim();
-        String uname = usernameField.getText().trim();
-        String email = emailField.getText().trim();
-        String role  = roleCombo.getValue();
-
-        if (name.isEmpty()) {
-            setError("Full name is required.");
-            return false;
-        }
-        if (uname.isEmpty()) {
-            setError("Username is required.");
-            return false;
-        }
-        if (uname.length() < 3) {
-            setError("Username must be at least 3 characters.");
-            return false;
-        }
-        if (email.isEmpty()) {
-            setError("Email is required.");
-            return false;
-        }
-        if (!email.contains("@") || !email.contains(".")) {
-            setError("Enter a valid email address.");
-            return false;
-        }
-        if (role == null || role.isEmpty()) {
-            setError("Role is required.");
+        List<String> errors = ValidationUtil.validateUser(
+            fullNameField.getText(), usernameField.getText(), emailField.getText());
+        String role = roleCombo.getValue();
+        if (role == null || role.isEmpty())
+            errors.add("Role is required.");
+        if (!errors.isEmpty()) {
+            setError(ValidationUtil.joinErrors(errors));
             return false;
         }
         clearError();

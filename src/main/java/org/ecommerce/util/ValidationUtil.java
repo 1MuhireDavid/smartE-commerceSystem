@@ -1,8 +1,12 @@
 package org.ecommerce.util;
 
+import org.ecommerce.dao.UserDAO;
+
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Centralised input-validation helpers used by all dialog controllers.
@@ -10,40 +14,46 @@ import java.util.List;
  */
 public class ValidationUtil {
 
+    private static final UserDAO userdao = new UserDAO();
     private ValidationUtil() {}
 
-    private static final java.util.regex.Pattern EMAIL_PATTERN =
-        java.util.regex.Pattern.compile(
+    private static final Pattern EMAIL_PATTERN =
+        Pattern.compile(
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     // ── User validation ───────────────────────────────────────────────────────
 
     public static List<String> validateUser(String fullName, String username, String email) {
         List<String> errors = new ArrayList<>();
+
         if (isBlank(fullName))
             errors.add("Full name is required.");
-        if (isBlank(username))
-            errors.add("Username is required.");
-        else if (username.trim().length() < 3)
-            errors.add("Username must be at least 3 characters.");
-        if (isBlank(email)) {
-            errors.add("Email is required.");
-        } else if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
-            errors.add("Enter a valid email address (e.g. user@example.com).");
+        try{
+            if (isBlank(username) || userdao.existsByUsername(username)){
+                errors.add("Valid Username is required.");
+            }
+            else if (username.trim().length() < 3)
+                errors.add("Username must be at least 3 characters.");
+            if (isBlank(email)) {
+                errors.add("Email is required.");
+            } else if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
+                errors.add("Enter a valid email address (e.g. user@example.com).");
+            }
         }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+
+
         return errors;
     }
 
-    public static boolean isValidEmail(String email) {
-        return email != null && EMAIL_PATTERN.matcher(email.trim()).matches();
-    }
 
     // ── Product validation ────────────────────────────────────────────────────
 
     public static List<String> validateProduct(String name, String priceText,
-                                               String stockText, Integer categoryId) {
+                                               String stockText, String categoryName) {
         List<String> errors = new ArrayList<>();
-
         if (isBlank(name))
             errors.add("Product name is required.");
         else if (name.length() > 200)
@@ -74,6 +84,10 @@ public class ValidationUtil {
                 errors.add("Stock quantity must be a whole number.");
             }
         }
+        if (categoryName == null || isBlank(categoryName) || categoryName.equals("null")) {
+            errors.add("Category name is required.");
+        }
+
 
         return errors;
     }
