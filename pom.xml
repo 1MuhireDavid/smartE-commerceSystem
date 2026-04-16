@@ -128,6 +128,10 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>21</release>
+                    <!-- Preserve method parameter names in bytecode.
+                         Required by Spring GraphQL (@Argument), Spring MVC (@RequestParam),
+                         and Spring Data to resolve parameter names without explicit annotation values. -->
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
 
