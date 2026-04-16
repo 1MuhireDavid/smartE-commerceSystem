@@ -49,11 +49,6 @@ public class CategoryServiceImpl implements CategoryService {
         category.setActive(request.isActive());
         category.setDisplayOrder(request.getDisplayOrder());
 
-        if (request.getParentId() != null) {
-            CategoryEntity parent = findById(request.getParentId());
-            category.setParent(parent);
-        }
-
         return categoryRepository.save(category);
     }
 
@@ -72,16 +67,6 @@ public class CategoryServiceImpl implements CategoryService {
         category.setSlug(request.getSlug());
         category.setActive(request.isActive());
         category.setDisplayOrder(request.getDisplayOrder());
-
-        if (request.getParentId() != null) {
-            if (request.getParentId() == id) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "A category cannot be its own parent");
-            }
-            category.setParent(findById(request.getParentId()));
-        } else {
-            category.setParent(null);
-        }
 
         return categoryRepository.save(category);
     }

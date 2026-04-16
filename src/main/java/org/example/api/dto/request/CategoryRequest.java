@@ -19,9 +19,6 @@ public class CategoryRequest {
     @ValidSlug
     private String slug;
 
-    @Schema(description = "ID of the parent category (null for top-level)", example = "null")
-    private Integer parentId;
-
     @Schema(description = "Whether the category is active", defaultValue = "true")
     private boolean active = true;
 
@@ -34,9 +31,6 @@ public class CategoryRequest {
 
     public String  getSlug()                  { return slug; }
     public void    setSlug(String v)          { this.slug = v; }
-
-    public Integer getParentId()              { return parentId; }
-    public void    setParentId(Integer v)     { this.parentId = v; }
 
     public boolean isActive()                 { return active; }
     public void    setActive(boolean v)       { this.active = v; }

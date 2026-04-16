@@ -78,14 +78,11 @@ public class CategoryController {
 
     @Operation(
         summary     = "Create category",
-        description = "Creates a new category. Slug must be globally unique. "
-                    + "Set parentId to nest under an existing category."
+        description = "Creates a new category. Slug must be globally unique."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Category created successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.example.api.dto.ApiResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Parent category not found",
                      content = @Content(schema = @Schema(implementation = org.example.api.dto.ApiResponse.class))),
         @ApiResponse(responseCode = "409", description = "Slug already in use",
                      content = @Content(schema = @Schema(implementation = org.example.api.dto.ApiResponse.class)))

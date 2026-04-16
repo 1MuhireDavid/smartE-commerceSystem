@@ -11,10 +11,6 @@ public class CategoryEntity {
     @Column(name = "category_id")
     private Integer categoryId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private CategoryEntity parent;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -31,9 +27,6 @@ public class CategoryEntity {
 
     public Integer getCategoryId()                     { return categoryId; }
     public void setCategoryId(Integer id)              { this.categoryId = id; }
-
-    public CategoryEntity getParent()                  { return parent; }
-    public void setParent(CategoryEntity parent)       { this.parent = parent; }
 
     public String getName()                            { return name; }
     public void setName(String name)                   { this.name = name; }

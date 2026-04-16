@@ -55,12 +55,10 @@ CREATE INDEX idx_addresses_user_id ON addresses (user_id);
 -- ─── categories ───────────────────────────────────────────────────────────────
 CREATE TABLE categories (
     category_id   SERIAL       PRIMARY KEY,
-    parent_id     INT          REFERENCES categories (category_id) ON DELETE SET NULL,
     name          VARCHAR(100) NOT NULL,
     slug          VARCHAR(120) NOT NULL UNIQUE,
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
-    display_order INT          NOT NULL DEFAULT 0,
-    CONSTRAINT chk_no_self_parent CHECK (parent_id IS NULL OR parent_id <> category_id)
+    display_order INT          NOT NULL DEFAULT 0
 );
 
 -- ─── products ─────────────────────────────────────────────────────────────────

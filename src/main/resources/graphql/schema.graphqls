@@ -22,7 +22,6 @@ type Category {
     categoryId:   ID!
     name:         String!
     slug:         String!
-    parent:       Category       # null for top-level categories
     active:       Boolean!
     displayOrder: Int!
 }
@@ -116,7 +115,6 @@ input UserInput {
 input CategoryInput {
     name:         String!
     slug:         String!
-    parentId:     Int
     active:       Boolean = true
     displayOrder: Int     = 0
 }
