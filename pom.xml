@@ -16,9 +16,22 @@
         <spring-boot.version>3.3.5</spring-boot.version>
     </properties>
 
-    <!-- Spring Boot BOM — manages all Spring dependency versions -->
     <dependencyManagement>
         <dependencies>
+            <!-- Spring Framework BOM imported FIRST — first-BOM-wins rule means
+                 these versions override the Spring Framework versions that
+                 spring-boot-dependencies 3.3.5 would otherwise provide (6.1.14).
+                 Upgrades to 6.1.20 which fixes CVE-2025-22233 (DataBinder bypass).
+                 Remove this block when upgrading Spring Boot to 3.5.x or later. -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>6.1.20</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Boot BOM — manages all remaining Spring dependency versions -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
