@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <DialogPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.CategoryDialogController"
+            fx:controller="org.ecommerce.controller.CategoryDialogController"
             prefWidth="400">
 
     <headerText>Category Details</headerText>
@@ -22,16 +22,20 @@
                 <TextField fx:id="nameField"      GridPane.rowIndex="0" GridPane.columnIndex="1"
                            promptText="Category name" maxWidth="Infinity"/>
 
-                <Label text="Slug"                GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                <TextField fx:id="slugField"      GridPane.rowIndex="1" GridPane.columnIndex="1"
+                <Label text="Parent "              GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="parentField"      GridPane.rowIndex="1" GridPane.columnIndex="1"
+                           promptText="Category name" maxWidth="Infinity"/>
+
+                <Label text="Slug"                GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <TextField fx:id="slugField"      GridPane.rowIndex="2" GridPane.columnIndex="1"
                            promptText="Auto-generated from name" maxWidth="Infinity"/>
 
-                <Label text="Display Order"           GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                <TextField fx:id="displayOrderField"  GridPane.rowIndex="2" GridPane.columnIndex="1"
+                <Label text="Display Order"           GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <TextField fx:id="displayOrderField"  GridPane.rowIndex="3" GridPane.columnIndex="1"
                            promptText="0" prefWidth="80"/>
 
-                <Label text="Active"              GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                <CheckBox fx:id="activeCheck"     GridPane.rowIndex="3" GridPane.columnIndex="1"
+                <Label text="Active"              GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <CheckBox fx:id="activeCheck"     GridPane.rowIndex="4" GridPane.columnIndex="1"
                           selected="true"/>
             </GridPane>
 

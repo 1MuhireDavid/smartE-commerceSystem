@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <DialogPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.UserDialogController"
+            fx:controller="org.ecommerce.controller.UserDialogController"
             prefWidth="420">
 
     <headerText>User Details</headerText>
@@ -29,20 +29,24 @@
                 <TextField fx:id="emailField"    GridPane.rowIndex="2" GridPane.columnIndex="1"
                            maxWidth="Infinity"/>
 
-                <Label text="Phone"              GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                <TextField fx:id="phoneField"    GridPane.rowIndex="3" GridPane.columnIndex="1"
+                <Label text="Address *"            GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <TextField fx:id="addressField"    GridPane.rowIndex="3" GridPane.columnIndex="1"
                            maxWidth="Infinity"/>
 
-                <Label text="Role *"             GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                <ComboBox fx:id="roleCombo"      GridPane.rowIndex="4" GridPane.columnIndex="1"
+                <Label text="Phone"              GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                <TextField fx:id="phoneField"    GridPane.rowIndex="4" GridPane.columnIndex="1"
+                           maxWidth="Infinity"/>
+
+                <Label text="Role *"             GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="roleCombo"      GridPane.rowIndex="5" GridPane.columnIndex="1"
                           maxWidth="Infinity"/>
 
-                <Label text="Active"             GridPane.rowIndex="5" GridPane.columnIndex="0"/>
-                <CheckBox fx:id="activeCheck"    GridPane.rowIndex="5" GridPane.columnIndex="1"
+                <Label text="Active"             GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                <CheckBox fx:id="activeCheck"    GridPane.rowIndex="6" GridPane.columnIndex="1"
                           selected="true"/>
 
-                <Label text="Password *"          GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                <PasswordField fx:id="passwordField" GridPane.rowIndex="6" GridPane.columnIndex="1"
+                <Label text="Password *"          GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                <PasswordField fx:id="passwordField" GridPane.rowIndex="7" GridPane.columnIndex="1"
                                maxWidth="Infinity" promptText="Leave blank to keep existing"/>
             </GridPane>
 

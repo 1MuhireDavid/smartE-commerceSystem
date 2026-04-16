@@ -113,35 +113,7 @@ src/
 ## Entity Relationship Diagram (ERD)
 
 ```
-┌─────────────────────────────┐         ┌──────────────────────────────────────┐
-│         categories          │         │               products                │
-├─────────────────────────────┤         ├──────────────────────────────────────┤
-│ id          SERIAL PK       │◄────────│ id             SERIAL PK             │
-│ name        VARCHAR(100) UQ │  1 : N  │ name           VARCHAR(200) NOT NULL  │
-│ description TEXT            │         │ description    TEXT                   │
-│ created_at  TIMESTAMP       │         │ price          NUMERIC(10,2) ≥ 0      │
-└─────────────────────────────┘         │ stock_quantity INT ≥ 0               │
-                                        │ category_id    INT FK → categories   │
-                                        │ created_at     TIMESTAMP             │
-                                        │ updated_at     TIMESTAMP (auto)      │
-                                        └──────────────┬───────────────────────┘
-                                                       │ 1 : N
-                                        ┌──────────────▼───────────────────────┐
-                                        │              reviews                  │
-                                        ├──────────────────────────────────────┤
-                                        │ id           SERIAL PK               │
-                                        │ product_id   INT FK → products       │
-                                        │ review_data  JSONB  ← NoSQL field    │
-                                        │ created_at   TIMESTAMP               │
-                                        └──────────────────────────────────────┘
-
-review_data JSON schema (flexible — any additional fields are valid):
-  { "customer_name": "string",
-    "rating": 1–5,
-    "comment": "string",
-    "verified_purchase": true|false,
-    "media_urls": ["url1", ...]        ← optional
-  }
+https://drive.google.com/file/d/1tWjC7sltJAvSUzS5sJ1my1Q3v44_CR-u/view?usp=sharing
 ```
 
 ---

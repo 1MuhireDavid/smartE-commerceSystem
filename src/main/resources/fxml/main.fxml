@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.MainController"
+            fx:controller="org.ecommerce.controller.MainController"
             prefWidth="1280" prefHeight="760"
             style="-fx-font-family: 'Segoe UI', Arial, sans-serif;">
 
@@ -58,6 +58,14 @@
 
             <Tab fx:id="paymentTab" text="Payments">
                 <fx:include fx:id="payment" source="payment_view.fxml"/>
+            </Tab>
+
+            <Tab fx:id="reviewsTab" text="Reviews">
+                <fx:include fx:id="reviews" source="all_reviews_view.fxml"/>
+            </Tab>
+
+            <Tab fx:id="activityTab" text="Activity Logs">
+                <fx:include fx:id="activityLog" source="activity_log_view.fxml"/>
             </Tab>
 
         </TabPane>

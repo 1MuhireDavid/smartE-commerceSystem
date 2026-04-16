@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(mvn compile:*)",
-      "Bash(timeout 20 mvn javafx:run)"
+      "Bash(timeout 20 mvn javafx:run)",
+      "Bash(wc -l /c/Users/Amalitech/Downloads/BOOKS/SmartE-commerceSystem/src/main/java/org/example/dao/*.java)",
+      "Bash(grep -E \"\\\\.fxml$\")"
     ]
   }
 }
