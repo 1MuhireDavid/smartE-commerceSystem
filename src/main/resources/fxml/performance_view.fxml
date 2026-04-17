@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controller.PerformanceController"
+      fx:controller="org.ecommerce.controller.PerformanceController"
       spacing="10" style="-fx-padding: 14;">
 
     <Label text="Performance Benchmark — Caching and Indexing"

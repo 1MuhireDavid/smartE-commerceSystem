@@ -36,7 +36,7 @@ spring:
     password: rwanda
     driver-class-name: org.postgresql.Driver
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: true
@@ -46,7 +46,7 @@ spring:
 
 logging:
   level:
-    org.example.api: DEBUG
+    org.ecommerce.api: DEBUG
     org.hibernate.SQL: DEBUG
 
 ---
@@ -61,14 +61,14 @@ spring:
     password: rwanda
     driver-class-name: org.postgresql.Driver
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
     hibernate:
       ddl-auto: create-drop
     show-sql: false
 
 logging:
   level:
-    org.example.api: INFO
+    org.ecommerce.api: INFO
 
 ---
 # ── PROD profile ──────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ spring:
     url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     show-sql: false
@@ -94,4 +94,4 @@ server:
 logging:
   level:
     root: WARN
-    org.example.api: INFO
+    org.ecommerce.api: INFO

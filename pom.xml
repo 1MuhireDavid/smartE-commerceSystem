@@ -113,7 +113,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>org.example.Main</mainClass>
+                    <mainClass>org.ecommerce.Main</mainClass>
                     <options>
                         <option>--enable-native-access=javafx.graphics</option>
                         <option>--sun-misc-unsafe-memory-access=allow</option>
@@ -141,7 +141,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>org.example.api.SmartEcommerceApplication</mainClass>
+                    <mainClass>org.ecommerce.api.SmartEcommerceApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

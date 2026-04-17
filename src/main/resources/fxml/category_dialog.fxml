@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <DialogPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.CategoryDialogController"
+            fx:controller="org.ecommerce.controller.CategoryDialogController"
             prefWidth="400">
 
     <headerText>Category Details</headerText>

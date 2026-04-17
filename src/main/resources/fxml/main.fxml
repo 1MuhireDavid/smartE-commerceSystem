@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.MainController"
+            fx:controller="org.ecommerce.controller.MainController"
             prefWidth="1280" prefHeight="760"
             style="-fx-font-family: 'Segoe UI', Arial, sans-serif;">
 

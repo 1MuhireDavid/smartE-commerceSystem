@@ -21,28 +21,28 @@ INSERT INTO addresses (user_id, address_line1, city, state, country, postal_code
     (6, '3 Independence Rd', 'Boston',        'MA', 'US', '02101', TRUE),
     (7, '20 Freedom Lane',   'Atlanta',       'GA', 'US', '30301', TRUE);
 
--- ─── Categories (parent_id for hierarchy) ──────────────────────────────────────
-INSERT INTO categories (parent_id, name, slug, is_active, display_order) VALUES
-    (NULL, 'Electronics',    'electronics',    TRUE, 1),
-    (NULL, 'Clothing',       'clothing',       TRUE, 2),
-    (NULL, 'Home & Kitchen', 'home-kitchen',   TRUE, 3),
-    (NULL, 'Books',          'books',          TRUE, 4),
-    (NULL, 'Sports',         'sports',         TRUE, 5),
-    (NULL, 'Beauty',         'beauty',         TRUE, 6),
-    (NULL, 'Toys & Games',   'toys-games',     TRUE, 7);
+-- ─── Categories ───────────────────────────────────────────────────────────────
+INSERT INTO categories (name, slug, is_active, display_order) VALUES
+    ('Electronics',    'electronics',    TRUE, 1),
+    ('Clothing',       'clothing',       TRUE, 2),
+    ('Home & Kitchen', 'home-kitchen',   TRUE, 3),
+    ('Books',          'books',          TRUE, 4),
+    ('Sports',         'sports',         TRUE, 5),
+    ('Beauty',         'beauty',         TRUE, 6),
+    ('Toys & Games',   'toys-games',     TRUE, 7);
 
 -- Electronics sub-categories
-INSERT INTO categories (parent_id, name, slug, is_active, display_order) VALUES
-    (1, 'Smartphones',  'smartphones',  TRUE, 1),
-    (1, 'Laptops',      'laptops',      TRUE, 2),
-    (1, 'Audio',        'audio',        TRUE, 3),
-    (1, 'Accessories',  'accessories',  TRUE, 4);
+INSERT INTO categories (name, slug, is_active, display_order) VALUES
+    ('Smartphones',  'smartphones',  TRUE, 10),
+    ('Laptops',      'laptops',      TRUE, 11),
+    ('Audio',        'audio',        TRUE, 12),
+    ('Accessories',  'accessories',  TRUE, 13);
 
 -- Clothing sub-categories
-INSERT INTO categories (parent_id, name, slug, is_active, display_order) VALUES
-    (2, 'Men''s Wear',    'mens-wear',    TRUE, 1),
-    (2, 'Women''s Wear',  'womens-wear',  TRUE, 2),
-    (2, 'Footwear',       'footwear',     TRUE, 3);
+INSERT INTO categories (name, slug, is_active, display_order) VALUES
+    ('Men''s Wear',    'mens-wear',    TRUE, 20),
+    ('Women''s Wear',  'womens-wear',  TRUE, 21),
+    ('Footwear',       'footwear',     TRUE, 22);
 
 -- ─── Products (seller_id = 2 = techsell, seller_id = 3 = fashionco) ───────────
 INSERT INTO products (seller_id, category_id, name, slug, description, base_price, discount_price, status) VALUES

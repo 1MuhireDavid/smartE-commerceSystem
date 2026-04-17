@@ -4,8 +4,8 @@ A full-stack e-commerce platform with two co-existing layers built on the same P
 
 | Layer | Technology | Entry point |
 |---|---|---|
-| **Desktop UI** | JavaFX + JDBC | `org.example.Main` |
-| **REST + GraphQL API** | Spring Boot 3.3 | `org.example.api.SmartEcommerceApplication` |
+| **Desktop UI** | JavaFX + JDBC | `org.ecommerce.Main` |
+| **REST + GraphQL API** | Spring Boot 3.3 | `org.ecommerce.api.SmartEcommerceApplication` |
 
 ---
 
@@ -75,8 +75,8 @@ The `dev` profile connects to the same database out of the box:
 # already set in application.yml – dev profile
 datasource:
   url: jdbc:postgresql://localhost:5432/smart_ecommerce
-  username: postgres
-  password: rwanda
+  username: your_username
+  password: your_password
 ```
 
 Change the password to match your local instance.
@@ -91,20 +91,16 @@ Change the password to match your local instance.
 
 ```
 users ──< products ──< order_items >── orders >── payments
-  │            │
-  │            └──< inventory
-  │            └──< reviews
-  │            └──< cart_items >── carts
-  │
-  └──< addresses
-  └──< orders
+               │
+               └──< inventory
+               └──< reviews
+               └──< cart_items >── carts
 
-categories ──< products   (self-referential: categories.parent_id)
+categories ──< products 
 ```
 
 **Tables:** `users`, `addresses`, `categories`, `products`, `inventory`,
-`orders`, `order_items`, `payments`, `carts`, `cart_items`, `reviews`,
-`wishlist`, `coupons`, `activity_logs` (JSONB).
+`orders`, `order_items`, `payments`, `carts`, `cart_items`, `reviews`, `activity_logs` (JSONB).
 
 ---
 
@@ -390,7 +386,7 @@ Request arrives
 |---|---|---|---|
 | `LoggingAspect` | `@Before` + `@After` | `service.impl.*.*(..)` | Entry/exit breadcrumbs |
 | `PerformanceMonitoringAspect` | `@Around` | `service.impl.*.*(..)` | Execution time, slow-call detection, per-method stats |
-| `ExceptionLoggingAspect` | `@AfterThrowing` | `org.example.api..*(..)` | Structured exception logging before propagation |
+| `ExceptionLoggingAspect` | `@AfterThrowing` | `org.ecommerce.api..*(..)` | Structured exception logging before propagation |
 
 ### Live metrics
 
@@ -435,7 +431,7 @@ monitoring:
 | `@DecimalMin` | Prices | Must be ≥ 0 |
 | `@Min` | Stock, reorder level | Must be ≥ 0 |
 
-### Custom validators (`org.example.api.validation`)
+### Custom validators (`org.ecommerce.api.validation`)
 
 | Annotation | Type | Rule enforced |
 |---|---|---|

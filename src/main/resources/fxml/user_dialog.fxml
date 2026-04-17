@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <DialogPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controller.UserDialogController"
+            fx:controller="org.ecommerce.controller.UserDialogController"
             prefWidth="420">
 
     <headerText>User Details</headerText>

@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controller.OrderDetailController"
+      fx:controller="org.ecommerce.controller.OrderDetailController"
       spacing="10" style="-fx-padding: 14;" prefWidth="700" prefHeight="500">
 
     <Label fx:id="titleLabel" text="Order Details"

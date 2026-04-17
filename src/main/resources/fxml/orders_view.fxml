@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controller.OrdersController"
+      fx:controller="org.ecommerce.controller.OrdersController"
       spacing="8" style="-fx-padding: 14;">
 
     <!-- ── Toolbar ── -->
