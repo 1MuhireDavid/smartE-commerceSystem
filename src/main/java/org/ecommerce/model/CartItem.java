@@ -33,7 +33,7 @@ public class CartItem {
     public BigDecimal    getUnitPrice()                        { return unitPrice; }
     public void          setUnitPrice(BigDecimal unitPrice)    { this.unitPrice = unitPrice; }
 
-    public LocalDateTime getAddedAt()                          { return addedAt; }
+
     public void          setAddedAt(LocalDateTime t)           { this.addedAt = t; }
 
     public BigDecimal    getLineTotal() {

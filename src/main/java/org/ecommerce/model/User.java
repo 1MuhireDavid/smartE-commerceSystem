@@ -10,6 +10,7 @@ public class User {
     private String passwordHash;
     private String fullName;
     private String phone;
+    private String address;
     private String role;          // customer | seller | admin
     private boolean isActive;
     private LocalDateTime createdAt;
@@ -18,7 +19,7 @@ public class User {
     public User() {}
 
     public User(long userId, String username, String email, String passwordHash,
-                String fullName, String phone, String role, boolean isActive,
+                String fullName, String phone, String address, String role, boolean isActive,
                 LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId       = userId;
         this.username     = username;
@@ -26,6 +27,7 @@ public class User {
         this.passwordHash = passwordHash;
         this.fullName     = fullName;
         this.phone        = phone;
+        this.address      = address;
         this.role         = role;
         this.isActive     = isActive;
         this.createdAt    = createdAt;
@@ -50,6 +52,9 @@ public class User {
     public String  getPhone()                         { return phone; }
     public void    setPhone(String phone)             { this.phone = phone; }
 
+    public String  getAddress()                       { return address; }
+    public void    setAddress(String address)         { this.address = address; }
+
     public String  getRole()                          { return role; }
     public void    setRole(String role)               { this.role = role; }
 
@@ -59,7 +64,6 @@ public class User {
     public LocalDateTime getCreatedAt()               { return createdAt; }
     public void    setCreatedAt(LocalDateTime t)      { this.createdAt = t; }
 
-    public LocalDateTime getUpdatedAt()               { return updatedAt; }
     public void    setUpdatedAt(LocalDateTime t)      { this.updatedAt = t; }
 
     @Override public String toString() { return fullName + " (" + username + ")"; }

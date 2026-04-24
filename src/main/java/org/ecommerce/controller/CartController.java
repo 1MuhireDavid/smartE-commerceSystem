@@ -103,10 +103,10 @@ public class CartController {
             new SimpleStringProperty(String.valueOf(c.getValue().getQuantity())));
         colPrice    .setCellValueFactory(c -> {
             var p = c.getValue().getUnitPrice();
-            return new SimpleStringProperty(p == null ? "" : "$" + p.toPlainString());
+            return new SimpleStringProperty(p == null ? "" : " " + p.toPlainString());
         });
         colLineTotal.setCellValueFactory(c ->
-            new SimpleStringProperty("$" + String.format("%,.2f", c.getValue().getLineTotal())));
+            new SimpleStringProperty( String.format("%,.2f", c.getValue().getLineTotal())));
     }
 
     // ── Data loading ──────────────────────────────────────────────────────────

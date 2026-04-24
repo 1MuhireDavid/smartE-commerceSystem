@@ -53,13 +53,13 @@
                 <ComboBox fx:id="methodCombo" GridPane.columnIndex="3" GridPane.rowIndex="0"
                           prefWidth="130"/>
 
-                <Label text="Amount ($):"       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <Label text="Amount:"       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
                 <TextField fx:id="amountField"  GridPane.columnIndex="1" GridPane.rowIndex="1"
                            prefWidth="200" promptText="0.00"/>
 
                 <Label text="Tx ID (opt):"    GridPane.columnIndex="2" GridPane.rowIndex="1"/>
                 <TextField fx:id="txIdField"  GridPane.columnIndex="3" GridPane.rowIndex="1"
-                           prefWidth="180" promptText="leave blank if none"/>
+                           prefWidth="180" promptText="Auto-generated if blank"/>
 
                 <Button text="Record Payment" onAction="#handleRecord"
                         style="-fx-background-color: #27ae60; -fx-text-fill: white;"

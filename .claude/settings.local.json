@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(mvn compile:*)",
-      "Bash(timeout 20 mvn javafx:run)"
-    ]
-  }
-}

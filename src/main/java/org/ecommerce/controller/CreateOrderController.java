@@ -71,7 +71,7 @@ public class CreateOrderController {
             productCombo.setOnAction(e -> {
                 Product p = productCombo.getValue();
                 if (p != null)
-                    priceLabel.setText("$" + p.getEffectivePrice().toPlainString());
+                    priceLabel.setText(p.getEffectivePrice().toPlainString());
                 else
                     priceLabel.setText("");
             });
@@ -163,8 +163,8 @@ public class CreateOrderController {
 
         // Check total = subtotal - discount (schema constraint)
         if (discount.compareTo(subtotal) > 0) {
-            error("Discount ($" + discount.toPlainString()
-                + ") exceeds subtotal ($" + subtotal.toPlainString() + ")."); return;
+            error("Discount (" + discount.toPlainString()
+                + ") exceeds subtotal (" + subtotal.toPlainString() + ")."); return;
         }
 
         Order order = new Order();
@@ -197,11 +197,11 @@ public class CreateOrderController {
             new SimpleStringProperty(String.valueOf(c.getValue().getQuantity())));
         colUnit.setCellValueFactory(c -> {
             var p = c.getValue().getUnitPrice();
-            return new SimpleStringProperty(p == null ? "" : "$" + p.toPlainString());
+            return new SimpleStringProperty(p == null ? "" : " " + p.toPlainString());
         });
         colLine.setCellValueFactory(c -> {
             var t = c.getValue().getTotalPrice();
-            return new SimpleStringProperty(t == null ? "" : "$" + t.toPlainString());
+            return new SimpleStringProperty(t == null ? "" : " " + t.toPlainString());
         });
     }
 
@@ -209,7 +209,7 @@ public class CreateOrderController {
         BigDecimal subtotal = items.stream()
             .map(i -> i.getTotalPrice() == null ? BigDecimal.ZERO : i.getTotalPrice())
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        subtotalLabel.setText("$" + String.format("%,.2f", subtotal));
+        subtotalLabel.setText(String.format("%,.2f", subtotal));
 
         BigDecimal discount = BigDecimal.ZERO;
         try {
@@ -218,7 +218,7 @@ public class CreateOrderController {
         } catch (NumberFormatException ignored) {}
 
         BigDecimal total = subtotal.subtract(discount).max(BigDecimal.ZERO);
-        totalLabel.setText("$" + String.format("%,.2f", total));
+        totalLabel.setText(String.format("%,.2f", total));
     }
 
     private void clearItemForm() {

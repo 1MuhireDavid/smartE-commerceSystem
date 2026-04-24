@@ -72,14 +72,14 @@ public class ReportService {
         List<Object[]> statuses = getOrdersByStatus();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("═══════════════════════════════════════════════════════\n");
+        sb.append("=".repeat(80) + "\n");
         sb.append("  Smart E-Commerce System — Sales & Inventory Report\n");
-        sb.append("═══════════════════════════════════════════════════════\n\n");
+        sb.append("=".repeat(80) + "\n\n");
 
         sb.append("── Overall Summary (paid orders) ──────────────────────\n");
-        sb.append(String.format("  Total Revenue      : $%,.2f%n", summary.totalRevenue()));
+        sb.append(String.format("  Total Revenue      : %,.2f%n", summary.totalRevenue()));
         sb.append(String.format("  Total Orders       : %d%n",     summary.totalOrders()));
-        sb.append(String.format("  Avg Order Value    : $%,.2f%n", summary.avgOrderValue()));
+        sb.append(String.format("  Avg Order Value    : %,.2f%n", summary.avgOrderValue()));
         sb.append(String.format("  Active Customers   : %d%n",     summary.totalCustomers()));
         sb.append(String.format("  Low Stock Products : %d%n",     summary.lowStockCount()));
 
@@ -87,24 +87,24 @@ public class ReportService {
         sb.append(String.format("  %-15s %8s  %12s%n", "Status", "Count", "Revenue"));
         sb.append("  " + "─".repeat(40) + "\n");
         for (Object[] row : statuses)
-            sb.append(String.format("  %-15s %8d  $%,10.2f%n",
+            sb.append(String.format("  %-15s %8d  %,10.2f%n",
                 row[0], row[1], row[2]));
 
         sb.append("\n── Top 5 Products by Revenue ──────────────────────────\n");
         sb.append(String.format("  %-30s %10s  %10s%n", "Product", "Revenue", "Units"));
         sb.append("  " + "─".repeat(55) + "\n");
         for (Object[] row : top)
-            sb.append(String.format("  %-30s $%,8.2f  %10d%n",
+            sb.append(String.format("  %-30s %,8.2f  %10d%n",
                 truncate((String) row[0], 30), row[1], row[2]));
 
         sb.append("\n── Monthly Revenue (last 12 months) ───────────────────\n");
         sb.append(String.format("  %-10s %8s  %12s%n", "Month", "Orders", "Revenue"));
         sb.append("  " + "─".repeat(35) + "\n");
         for (Object[] row : monthly)
-            sb.append(String.format("  %-10s %8d  $%,10.2f%n",
+            sb.append(String.format("  %-10s %8d  %,10.2f%n",
                 row[0], row[1], row[2]));
 
-        sb.append("\n═══════════════════════════════════════════════════════\n");
+        sb.append("=".repeat(80) + "\n");
         return sb.toString();
     }
 

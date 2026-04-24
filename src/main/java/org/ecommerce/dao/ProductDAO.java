@@ -125,17 +125,6 @@ public class ProductDAO {
         return list;
     }
 
-    public Product findById(long id) throws SQLException {
-        String sql = BASE_SELECT + " WHERE p.product_id = ?";
-        try (PreparedStatement ps = conn().prepareStatement(sql)) {
-            ps.setLong(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return map(rs);
-            }
-        }
-        return null;
-    }
-
     public int count() throws SQLException {
         try (Statement st = conn().createStatement();
              ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM products")) {
@@ -162,6 +151,18 @@ public class ProductDAO {
             ps.setBigDecimal(7, product.getDiscountPrice());
             ps.setString(8, product.getStatus());
             ps.setLong(9, product.getId());
+            ps.executeUpdate();
+        }
+        // Sync stock quantity: insert if missing, update qty_in_stock if already exists.
+        // reserved_qty and reorder_level are intentionally left unchanged on conflict.
+        String invSql = """
+                INSERT INTO inventory (product_id, qty_in_stock, reserved_qty, reorder_level)
+                VALUES (?, ?, 0, 10)
+                ON CONFLICT (product_id) DO UPDATE SET qty_in_stock = EXCLUDED.qty_in_stock
+                """;
+        try (PreparedStatement ps = conn().prepareStatement(invSql)) {
+            ps.setLong(1, product.getId());
+            ps.setInt(2, product.getStockQuantity());
             return ps.executeUpdate() > 0;
         }
     }

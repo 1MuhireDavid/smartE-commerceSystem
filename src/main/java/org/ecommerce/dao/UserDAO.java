@@ -17,8 +17,8 @@ public class UserDAO {
 
     public User insert(User user) throws SQLException {
         String sql = """
-                INSERT INTO users (username, email, password_hash, full_name, phone, role, is_active)
-                VALUES (?,?,?,?,?,?,?)
+                INSERT INTO users (username, email, password_hash, full_name, phone, address, role, is_active)
+                VALUES (?,?,?,?,?,?,?,?)
                 RETURNING user_id, created_at, updated_at
                 """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -27,8 +27,9 @@ public class UserDAO {
             ps.setString(3, user.getPasswordHash());
             ps.setString(4, user.getFullName());
             ps.setString(5, user.getPhone());
-            ps.setString(6, user.getRole() == null ? "customer" : user.getRole());
-            ps.setBoolean(7, user.isActive());
+            ps.setString(6, user.getAddress());
+            ps.setString(7, user.getRole() == null ? "customer" : user.getRole());
+            ps.setBoolean(8, user.isActive());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     user.setUserId(rs.getLong("user_id"));
@@ -152,7 +153,7 @@ public class UserDAO {
         String sql = """
                 UPDATE users
                 SET    username = ?, email = ?, full_name = ?,
-                       phone = ?, role = ?, is_active = ?
+                       phone = ?, address = ?, role = ?, is_active = ?
                 WHERE  user_id = ?
                 """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
@@ -160,9 +161,10 @@ public class UserDAO {
             ps.setString(2, user.getEmail());
             ps.setString(3, user.getFullName());
             ps.setString(4, user.getPhone());
-            ps.setString(5, user.getRole());
-            ps.setBoolean(6, user.isActive());
-            ps.setLong(7, user.getUserId());
+            ps.setString(5, user.getAddress());
+            ps.setString(6, user.getRole());
+            ps.setBoolean(7, user.isActive());
+            ps.setLong(8, user.getUserId());
             return ps.executeUpdate() > 0;
         }
     }
@@ -197,6 +199,7 @@ public class UserDAO {
             rs.getString("password_hash"),
             rs.getString("full_name"),
             rs.getString("phone"),
+            rs.getString("address"),
             rs.getString("role"),
             rs.getBoolean("is_active"),
             rs.getTimestamp("created_at").toLocalDateTime(),

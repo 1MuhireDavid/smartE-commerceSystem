@@ -23,6 +23,7 @@ public class UsersController {
     @FXML private TableColumn<User, String>     colName;
     @FXML private TableColumn<User, String>     colUsername;
     @FXML private TableColumn<User, String>     colEmail;
+    @FXML private TableColumn<User, String>     colAddress;
     @FXML private TableColumn<User, String>     colRole;
     @FXML private TableColumn<User, String>     colActive;
     @FXML private TableColumn<User, String>     colCreated;
@@ -57,6 +58,8 @@ public class UsersController {
             new SimpleStringProperty(c.getValue().getUsername()));
         colEmail.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getEmail()));
+        colAddress.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getAddress()));
         colRole.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getRole()));
         colActive.setCellValueFactory(c ->
@@ -125,7 +128,7 @@ public class UsersController {
         if (selected == null) return;
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setHeaderText("Delete user \"" + selected.getUsername() + "\"?");
-        confirm.setContentText("This will also delete all their orders, reviews and wishlist items.");
+        confirm.setContentText("This will also delete all their orders and reviews.");
         confirm.showAndWait().ifPresent(btn -> {
             if (btn == ButtonType.OK) {
                 try {

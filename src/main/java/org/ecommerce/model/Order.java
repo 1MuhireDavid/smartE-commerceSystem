@@ -8,14 +8,13 @@ public class Order {
 
     private long       orderId;
     private long       userId;
-    private String     userFullName;   // denormalised
-    private Long       shippingAddrId;
+    private String     userFullName;
     private String     orderNumber;
-    private String     status;         // pending|processing|shipped|delivered|cancelled
+    private String     status;
     private BigDecimal subtotal;
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
-    private String     paymentStatus;  // unpaid|paid|refunded
+    private String     paymentStatus;
     private LocalDateTime orderedAt;
     private LocalDateTime updatedAt;
 
@@ -33,9 +32,6 @@ public class Order {
 
     public String     getUserFullName()                  { return userFullName; }
     public void       setUserFullName(String s)          { this.userFullName = s; }
-
-    public Long       getShippingAddrId()                { return shippingAddrId; }
-    public void       setShippingAddrId(Long id)         { this.shippingAddrId = id; }
 
     public String     getOrderNumber()                   { return orderNumber; }
     public void       setOrderNumber(String s)           { this.orderNumber = s; }
@@ -58,11 +54,16 @@ public class Order {
     public LocalDateTime getOrderedAt()                  { return orderedAt; }
     public void       setOrderedAt(LocalDateTime t)      { this.orderedAt = t; }
 
-    public LocalDateTime getUpdatedAt()                  { return updatedAt; }
+
     public void       setUpdatedAt(LocalDateTime t)      { this.updatedAt = t; }
 
     public List<OrderItem> getItems()                    { return items; }
     public void       setItems(List<OrderItem> items)    { this.items = items; }
 
-    @Override public String toString() { return orderNumber; }
+    @Override public String toString() {
+        return orderNumber
+            + "  \u2014  "
+            + (userFullName != null ? userFullName : "?")
+            + "  (" +(totalAmount != null ? String.format("%,.2f", totalAmount) : "0.00") + ")";
+    }
 }

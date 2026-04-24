@@ -20,24 +20,20 @@ public class OrderDAO {
     public Order insert(Order order) throws SQLException {
         String sql = """
                 INSERT INTO orders
-                    (user_id, shipping_addr_id, order_number, status,
+                    (user_id, order_number, status,
                      subtotal, discount_amount, total_amount, payment_status)
-                VALUES (?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?)
                 RETURNING order_id, ordered_at, updated_at
                 """;
         try (PreparedStatement ps = conn().prepareStatement(sql)) {
             ps.setLong(1, order.getUserId());
-            if (order.getShippingAddrId() != null)
-                ps.setLong(2, order.getShippingAddrId());
-            else
-                ps.setNull(2, Types.BIGINT);
-            ps.setString(3, order.getOrderNumber());
-            ps.setString(4, order.getStatus() == null ? "pending" : order.getStatus());
-            ps.setBigDecimal(5, order.getSubtotal());
-            ps.setBigDecimal(6, order.getDiscountAmount() == null
+            ps.setString(2, order.getOrderNumber());
+            ps.setString(3, order.getStatus() == null ? "pending" : order.getStatus());
+            ps.setBigDecimal(4, order.getSubtotal());
+            ps.setBigDecimal(5, order.getDiscountAmount() == null
                                  ? BigDecimal.ZERO : order.getDiscountAmount());
-            ps.setBigDecimal(7, order.getTotalAmount());
-            ps.setString(8, order.getPaymentStatus() == null ? "unpaid" : order.getPaymentStatus());
+            ps.setBigDecimal(6, order.getTotalAmount());
+            ps.setString(7, order.getPaymentStatus() == null ? "unpaid" : order.getPaymentStatus());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     order.setOrderId(rs.getLong("order_id"));
@@ -78,6 +74,22 @@ public class OrderDAO {
                 SELECT o.*, u.full_name AS user_full_name
                 FROM   orders o
                 JOIN   users u ON u.user_id = o.user_id
+                ORDER  BY o.ordered_at DESC
+                """;
+        List<Order> list = new ArrayList<>();
+        try (Statement st = conn().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) list.add(mapOrder(rs));
+        }
+        return list;
+    }
+
+    public List<Order> findUnpaid() throws SQLException {
+        String sql = """
+                SELECT o.*, u.full_name AS user_full_name
+                FROM   orders o
+                JOIN   users u ON u.user_id = o.user_id
+                WHERE  o.payment_status = 'unpaid'
                 ORDER  BY o.ordered_at DESC
                 """;
         List<Order> list = new ArrayList<>();
@@ -270,8 +282,6 @@ public class OrderDAO {
         o.setOrderId(rs.getLong("order_id"));
         o.setUserId(rs.getLong("user_id"));
         o.setUserFullName(rs.getString("user_full_name"));
-        long addrId = rs.getLong("shipping_addr_id");
-        if (!rs.wasNull()) o.setShippingAddrId(addrId);
         o.setOrderNumber(rs.getString("order_number"));
         o.setStatus(rs.getString("status"));
         o.setSubtotal(rs.getBigDecimal("subtotal"));

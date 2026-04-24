@@ -22,7 +22,6 @@ public class CategoryController {
     @FXML private TableColumn<Category, String>  colParent;
     @FXML private TableColumn<Category, String>  colSlug;
     @FXML private TableColumn<Category, String>  colActive;
-    @FXML private TableColumn<Category, String>  colCreated;
     @FXML private Button addBtn;
     @FXML private Button editBtn;
     @FXML private Button deleteBtn;
@@ -49,18 +48,10 @@ public class CategoryController {
             new SimpleStringProperty(String.valueOf(c.getValue().getId())));
         colName.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getName()));
-        colParent.setCellValueFactory(c -> {
-            String p = c.getValue().getParentName();
-            return new SimpleStringProperty(p == null ? "—" : p);
-        });
         colSlug.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getSlug() == null ? "" : c.getValue().getSlug()));
         colActive.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().isActive() ? "Yes" : "No"));
-        colCreated.setCellValueFactory(c -> {
-            var dt = c.getValue().getCreatedAt();
-            return new SimpleStringProperty(dt == null ? "" : dt.format(DT_FMT));
-        });
     }
 
     private void loadData() {

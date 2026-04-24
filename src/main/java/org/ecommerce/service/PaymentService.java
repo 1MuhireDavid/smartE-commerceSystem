@@ -23,6 +23,11 @@ public class PaymentService {
     public Payment record(Payment payment) throws SQLException {
         Payment saved = dao.insert(payment);
         cache.clear();
+        ActivityLogService.get().log(null, "payment_recorded",
+                "order_id", saved.getOrderId(),
+                "amount", saved.getAmount(),
+                "method", saved.getPaymentMethod(),
+                "status", saved.getStatus());
         return saved;
     }
 
@@ -45,15 +50,13 @@ public class PaymentService {
         return results;
     }
 
-    public List<Payment> getByOrderId(long orderId) throws SQLException {
-        return dao.findByOrderId(orderId);
-    }
-
     // ── Update ────────────────────────────────────────────────────────────────
 
     public void updateStatus(long paymentId, String status) throws SQLException {
         dao.updateStatus(paymentId, status);
         cache.clear();
+        ActivityLogService.get().log(null, "payment_status_changed",
+                "payment_id", paymentId, "status", status);
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ public class PaymentService {
     public void delete(long paymentId) throws SQLException {
         dao.delete(paymentId);
         cache.clear();
+        ActivityLogService.get().log(null, "payment_deleted", "payment_id", paymentId);
     }
 
     private String normalize(String s) { return s == null ? "" : s.trim().toLowerCase(); }

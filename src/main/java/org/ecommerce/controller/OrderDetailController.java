@@ -39,11 +39,11 @@ public class OrderDetailController {
             new SimpleStringProperty(String.valueOf(c.getValue().getQuantity())));
         colUnitPrice.setCellValueFactory(c -> {
             var p = c.getValue().getUnitPrice();
-            return new SimpleStringProperty(p == null ? "—" : String.format("$%,.2f", p));
+            return new SimpleStringProperty(p == null ? "—" : String.format("%,.2f", p));
         });
         colLineTotal.setCellValueFactory(c -> {
             var t = c.getValue().getTotalPrice();
-            return new SimpleStringProperty(t == null ? "—" : String.format("$%,.2f", t));
+            return new SimpleStringProperty(t == null ? "—" : String.format("%,.2f", t));
         });
         colItemStatus.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getItemStatus()));
@@ -57,11 +57,11 @@ public class OrderDetailController {
         lblStatus.setText(order.getStatus());
         lblPayment.setText(order.getPaymentStatus());
         lblSubtotal.setText(order.getSubtotal() == null ? "—"
-            : String.format("$%,.2f", order.getSubtotal()));
+            : String.format("%,.2f", order.getSubtotal()));
         lblDiscount.setText(order.getDiscountAmount() == null ? "—"
-            : String.format("$%,.2f", order.getDiscountAmount()));
+            : String.format("%,.2f", order.getDiscountAmount()));
         lblTotal.setText(order.getTotalAmount() == null ? "—"
-            : String.format("$%,.2f", order.getTotalAmount()));
+            : String.format("%,.2f", order.getTotalAmount()));
         lblOrderedAt.setText(order.getOrderedAt() == null ? "—"
             : order.getOrderedAt().format(FMT));
 

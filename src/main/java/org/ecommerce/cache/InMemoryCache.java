@@ -47,25 +47,6 @@ public class InMemoryCache<K, V> {
         return entry.value;
     }
 
-    public boolean containsKey(K key) {
-        return get(key) != null;
-    }
-
-    public void invalidate(K key) {
-        store.remove(key);
-    }
-
-    /** Invalidate all entries whose key matches a given prefix (String keys only). */
-    @SuppressWarnings("unchecked")
-    public void invalidateByPrefix(String prefix) {
-        List<K> toRemove = new ArrayList<>();
-        for (K key : store.keySet()) {
-            if (key instanceof String s && s.startsWith(prefix)) {
-                toRemove.add(key);
-            }
-        }
-        toRemove.forEach(store::remove);
-    }
 
     /** Remove all entries from the cache. */
     public void clear() {

@@ -1,13 +1,12 @@
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ===========================================
 --  Smart E-Commerce System — Full Database Schema  (PostgreSQL)
 --  Run once against an empty database: smart_ecommerce
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ==========================================================
 
 -- ─── Drop existing objects (reverse FK order) ─────────────────────────────────
 DROP TABLE IF EXISTS activity_logs   CASCADE;
 DROP TABLE IF EXISTS wishlist        CASCADE;
 DROP TABLE IF EXISTS reviews         CASCADE;
-DROP TABLE IF EXISTS coupons         CASCADE;
 DROP TABLE IF EXISTS cart_items      CASCADE;
 DROP TABLE IF EXISTS carts           CASCADE;
 DROP TABLE IF EXISTS payments        CASCADE;
@@ -16,12 +15,11 @@ DROP TABLE IF EXISTS orders          CASCADE;
 DROP TABLE IF EXISTS inventory       CASCADE;
 DROP TABLE IF EXISTS products        CASCADE;
 DROP TABLE IF EXISTS categories      CASCADE;
-DROP TABLE IF EXISTS addresses       CASCADE;
 DROP TABLE IF EXISTS users           CASCADE;
 DROP FUNCTION IF EXISTS update_updated_at CASCADE;
 DROP FUNCTION IF EXISTS update_last_updated CASCADE;
 
--- ─── users ────────────────────────────────────────────────────────────────────
+
 CREATE TABLE users (
     user_id       BIGSERIAL    PRIMARY KEY,
     username      VARCHAR(50)  NOT NULL UNIQUE,
@@ -29,6 +27,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     full_name     VARCHAR(100) NOT NULL,
     phone         VARCHAR(20),
+    address       VARCHAR(300),
     role          VARCHAR(10)  NOT NULL DEFAULT 'customer'
                                CHECK (role IN ('customer','seller','admin')),
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
@@ -38,19 +37,6 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email    ON users (email);
 CREATE INDEX idx_users_username ON users (username);
 CREATE INDEX idx_users_role     ON users (role);
-
--- ─── addresses ────────────────────────────────────────────────────────────────
-CREATE TABLE addresses (
-    address_id    BIGSERIAL    PRIMARY KEY,
-    user_id       BIGINT       NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
-    address_line1 VARCHAR(200) NOT NULL,
-    city          VARCHAR(100) NOT NULL,
-    state         VARCHAR(100),
-    country       CHAR(2)      NOT NULL,
-    postal_code   VARCHAR(20)  NOT NULL,
-    is_default    BOOLEAN      NOT NULL DEFAULT FALSE
-);
-CREATE INDEX idx_addresses_user_id ON addresses (user_id);
 
 -- ─── categories ───────────────────────────────────────────────────────────────
 CREATE TABLE categories (
@@ -79,10 +65,11 @@ CREATE TABLE products (
     updated_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_products_name_btree  ON products (lower(name));
-CREATE INDEX idx_products_name_fts    ON products USING gin (to_tsvector('english', name));
+CREATE INDEX idx_products_name_fts    ON products USING gin (to_tsvector('english', coalesce(name,'') || ' ' || coalesce(description,'')));
 CREATE INDEX idx_products_category_id ON products (category_id);
 CREATE INDEX idx_products_seller_id   ON products (seller_id);
-CREATE INDEX idx_products_status      ON products (status);
+CREATE INDEX idx_products_status      ON products (category_id, status);
+CREATE INDEX idx_products_active_only ON products (category_id) WHERE status = 'active';
 
 -- ─── inventory ────────────────────────────────────────────────────────────────
 CREATE TABLE inventory (
@@ -99,10 +86,9 @@ CREATE TABLE inventory (
 CREATE TABLE orders (
     order_id         BIGSERIAL     PRIMARY KEY,
     user_id          BIGINT        NOT NULL REFERENCES users     (user_id)     ON DELETE RESTRICT,
-    shipping_addr_id BIGINT                 REFERENCES addresses (address_id)  ON DELETE SET NULL,
     order_number     VARCHAR(30)   NOT NULL UNIQUE,
     status           VARCHAR(15)   NOT NULL DEFAULT 'pending'
-                                   CHECK (status IN ('pending','processing','shipped','delivered','cancelled')),
+                                   CHECK (status IN ('pending','processing','completed','cancelled')),
     subtotal         NUMERIC(12,2) NOT NULL CHECK (subtotal       >= 0),
     discount_amount  NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     total_amount     NUMERIC(12,2) NOT NULL CHECK (total_amount   >= 0),
@@ -125,7 +111,7 @@ CREATE TABLE order_items (
     unit_price    NUMERIC(10,2) NOT NULL CHECK (unit_price >= 0),
     total_price   NUMERIC(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
     item_status   VARCHAR(10)   NOT NULL DEFAULT 'pending'
-                                CHECK (item_status IN ('pending','shipped','delivered','returned'))
+                                CHECK (item_status IN ('pending','completed','returned'))
 );
 CREATE INDEX idx_order_items_order_id   ON order_items (order_id);
 CREATE INDEX idx_order_items_product_id ON order_items (product_id);
@@ -177,32 +163,10 @@ CREATE TABLE reviews (
     body        TEXT,
     is_approved BOOLEAN    NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_user_product_order UNIQUE (user_id, product_id, order_id)
+    CONSTRAINT uq_user_product_order UNIQUE (user_id, product_id)
 );
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE INDEX idx_reviews_user_id    ON reviews (user_id);
-
--- ─── wishlist ─────────────────────────────────────────────────────────────────
-CREATE TABLE wishlist (
-    wishlist_id BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT    NOT NULL REFERENCES users    (user_id)    ON DELETE CASCADE,
-    product_id  BIGINT    NOT NULL REFERENCES products (product_id) ON DELETE CASCADE,
-    added_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_wishlist UNIQUE (user_id, product_id)
-);
-
--- ─── coupons ──────────────────────────────────────────────────────────────────
-CREATE TABLE coupons (
-    coupon_id       SERIAL        PRIMARY KEY,
-    code            VARCHAR(30)   NOT NULL UNIQUE,
-    discount_type   VARCHAR(12)   NOT NULL CHECK (discount_type IN ('percentage','fixed')),
-    discount_value  NUMERIC(8,2)  NOT NULL CHECK (discount_value  > 0),
-    min_order_value NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    usage_limit     INT           NOT NULL DEFAULT 1 CHECK (usage_limit > 0),
-    used_count      INT           NOT NULL DEFAULT 0,
-    expires_at      TIMESTAMP,
-    is_active       BOOLEAN       NOT NULL DEFAULT TRUE
-);
 
 -- ─── activity_logs  (NoSQL / JSONB) ───────────────────────────────────────────
 -- Stores unstructured user events.  Each event_type carries its own payload
@@ -222,20 +186,20 @@ CREATE INDEX idx_activity_logs_logged   ON activity_logs (logged_at);
 
 -- ─── Trigger: auto-update updated_at ──────────────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at()
-    RETURNS TRIGGER AS $$
+    RETURNS TRIGGER AS '
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+' LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION update_last_updated()
-    RETURNS TRIGGER AS $$
+    RETURNS TRIGGER AS '
 BEGIN
     NEW.last_updated = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+' LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON users     FOR EACH ROW EXECUTE FUNCTION update_updated_at();

@@ -49,7 +49,7 @@ public class ReportsController {
         colProdRevenue.setCellValueFactory(c -> {
             Object v = c.getValue()[1];
             return new SimpleStringProperty(v == null ? "—"
-                : String.format("$%,.2f", v));
+                : String.format("%,.2f", v));
         });
         colProdUnits.setCellValueFactory(c ->
             new SimpleStringProperty(String.valueOf(c.getValue()[2])));
@@ -62,7 +62,7 @@ public class ReportsController {
         colStatusRev.setCellValueFactory(c -> {
             Object v = c.getValue()[2];
             return new SimpleStringProperty(v == null ? "—"
-                : String.format("$%,.2f", v));
+                : String.format("%,.2f", v));
         });
     }
 
@@ -97,9 +97,9 @@ public class ReportsController {
             @Override
             protected void succeeded() {
                 // Summary cards
-                cardRevenue.setText(String.format("$%,.2f", summary.totalRevenue()));
+                cardRevenue.setText(String.format("%,.2f", summary.totalRevenue()));
                 cardOrders.setText(String.valueOf(summary.totalOrders()));
-                cardAvgOrder.setText(String.format("$%,.2f", summary.avgOrderValue()));
+                cardAvgOrder.setText(String.format("%,.2f", summary.avgOrderValue()));
                 cardCustomers.setText(String.valueOf(summary.totalCustomers()));
                 cardLowStock.setText(String.valueOf(summary.lowStockCount()));
 

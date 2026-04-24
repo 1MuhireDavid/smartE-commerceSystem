@@ -85,7 +85,7 @@ public class ProductController {
             return new SimpleStringProperty(cat == null ? "—" : cat);
         });
         colPrice.setCellValueFactory(c ->
-            new SimpleStringProperty("$" + c.getValue().getPrice().toPlainString()));
+            new SimpleStringProperty( c.getValue().getPrice().toPlainString()));
         colStock.setCellValueFactory(c ->
             new SimpleStringProperty(String.valueOf(c.getValue().getStockQuantity())));
         colCreated.setCellValueFactory(c -> {
@@ -170,7 +170,6 @@ public class ProductController {
         pageLabel.setText("Page " + (currentPage + 1) + " of " + (maxPage + 1));
     }
 
-    // ── CRUD handlers ─────────────────────────────────────────────────────────
 
     @FXML
     private void handleAdd() {

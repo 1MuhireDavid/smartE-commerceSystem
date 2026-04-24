@@ -12,6 +12,7 @@ import java.util.List;
 public class CategoryDialogController {
 
     @FXML private TextField nameField;
+    @FXML private TextField parentField;
     @FXML private TextField slugField;
     @FXML private TextField displayOrderField;
     @FXML private CheckBox  activeCheck;

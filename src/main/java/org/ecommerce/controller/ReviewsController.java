@@ -48,18 +48,14 @@ public class ReviewsController {
     }
 
     private void setupColumns() {
-        // userName is the reviewer's display name
         colCustomer.setCellValueFactory(c -> {
             String name = c.getValue().getUserName();
             return new SimpleStringProperty(name == null ? "—" : name);
         });
-        // getStars() returns e.g. "★★★☆☆"
         colRating.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().getStars()));
-        // colVerified repurposed as "Approved"
         colVerified.setCellValueFactory(c ->
             new SimpleStringProperty(c.getValue().isApproved() ? "✓" : ""));
-        // colComment repurposed for review body
         colComment.setCellValueFactory(c -> {
             String body = c.getValue().getBody();
             return new SimpleStringProperty(body == null ? "" : body);

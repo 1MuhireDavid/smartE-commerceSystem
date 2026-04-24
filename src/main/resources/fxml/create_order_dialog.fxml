@@ -46,16 +46,16 @@
 
     <!-- Discount row -->
     <HBox spacing="10" alignment="CENTER_LEFT">
-        <Label text="Discount ($):"/>
+        <Label text="Discount:"/>
         <TextField fx:id="discountField" prefWidth="110" promptText="0.00"/>
     </HBox>
 
     <!-- Totals row -->
     <HBox spacing="20" alignment="CENTER_RIGHT">
         <Label text="Subtotal:" style="-fx-font-weight: bold;"/>
-        <Label fx:id="subtotalLabel" text="$$0.00" prefWidth="90"/>
+        <Label fx:id="subtotalLabel" text="0.00" prefWidth="90"/>
         <Label text="Total:" style="-fx-font-weight: bold; -fx-font-size: 14;"/>
-        <Label fx:id="totalLabel" text="$$0.00" prefWidth="90"
+        <Label fx:id="totalLabel" text="0.00" prefWidth="90"
                style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #2980b9;"/>
     </HBox>
 

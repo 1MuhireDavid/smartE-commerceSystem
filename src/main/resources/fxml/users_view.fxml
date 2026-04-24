@@ -37,6 +37,7 @@
             <TableColumn fx:id="colName"     text="Full Name"  prefWidth="180"/>
             <TableColumn fx:id="colUsername" text="Username"   prefWidth="120"/>
             <TableColumn fx:id="colEmail"    text="Email"      prefWidth="210"/>
+            <TableColumn fx:id="colAddress"  text="Address"    prefWidth="90"/>
             <TableColumn fx:id="colRole"     text="Role"       prefWidth="90"/>
             <TableColumn fx:id="colActive"   text="Active"     prefWidth="70"/>
             <TableColumn fx:id="colCreated"  text="Joined"     prefWidth="130"/>
