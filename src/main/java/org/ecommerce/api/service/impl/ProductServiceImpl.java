@@ -36,8 +36,9 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public PagedResponse<ProductEntity> findAll(
             String keyword, Integer categoryId, String status, Long sellerId, Pageable pageable) {
+        String pattern = keyword != null ? ("%" + keyword.toLowerCase() + "%") : null;
         Page<ProductEntity> page =
-                productRepository.search(keyword, categoryId, status, sellerId, pageable);
+                productRepository.search(pattern, categoryId, status, sellerId, pageable);
         return PagedResponse.of(page);
     }
 

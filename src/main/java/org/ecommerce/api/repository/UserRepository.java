@@ -17,13 +17,13 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
         SELECT u FROM UserEntity u
         WHERE (:role IS NULL OR u.role = :role)
           AND (:active IS NULL OR u.active = :active)
-          AND (:keyword IS NULL
-               OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(u.email)    LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:pattern IS NULL
+               OR LOWER(u.fullName) LIKE :pattern
+               OR LOWER(u.email)    LIKE :pattern
+               OR LOWER(u.username) LIKE :pattern)
         """)
     Page<UserEntity> search(
-            @Param("keyword") String keyword,
+            @Param("pattern") String pattern,
             @Param("role")    String role,
             @Param("active")  Boolean active,
             Pageable pageable);

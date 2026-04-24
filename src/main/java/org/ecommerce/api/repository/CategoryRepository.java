@@ -14,12 +14,12 @@ public interface CategoryRepository extends JpaRepository<CategoryEntity, Intege
     @Query("""
         SELECT c FROM CategoryEntity c
         WHERE (:active IS NULL OR c.active = :active)
-          AND (:keyword IS NULL
-               OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:pattern IS NULL
+               OR LOWER(c.name) LIKE :pattern)
         ORDER BY c.displayOrder ASC, c.name ASC
         """)
     Page<CategoryEntity> search(
-            @Param("keyword") String keyword,
+            @Param("pattern") String pattern,
             @Param("active")  Boolean active,
             Pageable pageable);
 }

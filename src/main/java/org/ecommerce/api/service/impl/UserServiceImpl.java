@@ -25,7 +25,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public PagedResponse<UserEntity> findAll(
             String keyword, String role, Boolean active, Pageable pageable) {
-        Page<UserEntity> page = userRepository.search(keyword, role, active, pageable);
+        String pattern = keyword != null ? ("%" + keyword.toLowerCase() + "%") : null;
+        Page<UserEntity> page = userRepository.search(pattern, role, active, pageable);
         return PagedResponse.of(page);
     }
 

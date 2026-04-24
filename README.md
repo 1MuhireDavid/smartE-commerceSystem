@@ -1,11 +1,6 @@
 # Smart E-Commerce System
 
-A full-stack e-commerce platform with two co-existing layers built on the same PostgreSQL database:
-
-| Layer | Technology | Entry point |
-|---|---|---|
-| **Desktop UI** | JavaFX + JDBC | `org.ecommerce.Main` |
-| **REST + GraphQL API** | Spring Boot 3.3 | `org.ecommerce.api.SmartEcommerceApplication` |
+A Spring Boot REST + GraphQL API for an e-commerce platform, backed by PostgreSQL.
 
 ---
 
@@ -13,16 +8,15 @@ A full-stack e-commerce platform with two co-existing layers built on the same P
 
 1. [Prerequisites](#prerequisites)
 2. [Database Setup](#database-setup)
-3. [Entity Relationship Diagram](#entity-relationship-diagram)
-4. [Running the Application](#running-the-application)
-5. [Project Structure](#project-structure)
-6. [REST API](#rest-api)
-7. [GraphQL API](#graphql-api)
-8. [AOP — Logging & Monitoring](#aop--logging--monitoring)
-9. [Validation](#validation)
-10. [REST vs GraphQL — Performance Analysis](#rest-vs-graphql--performance-analysis)
-11. [Environment Profiles](#environment-profiles)
-12. [Dependencies](#dependencies)
+3. [Running the Application](#running-the-application)
+4. [Project Structure](#project-structure)
+5. [REST API](#rest-api)
+6. [GraphQL API](#graphql-api)
+7. [AOP — Logging & Monitoring](#aop--logging--monitoring)
+8. [Validation](#validation)
+9. [REST vs GraphQL — Trade-offs](#rest-vs-graphql--trade-offs)
+10. [Environment Profiles](#environment-profiles)
+11. [Dependencies](#dependencies)
 
 ---
 
@@ -30,7 +24,7 @@ A full-stack e-commerce platform with two co-existing layers built on the same P
 
 | Tool | Version |
 |---|---|
-| Java JDK | 21+ (LTS) |
+| Java JDK | 21+ |
 | Apache Maven | 3.9+ |
 | PostgreSQL | 14+ |
 
@@ -50,69 +44,29 @@ CREATE DATABASE smart_ecommerce;
 psql -U postgres -d smart_ecommerce -f src/main/resources/schema.sql
 ```
 
+This creates all tables, indexes, constraints, and triggers. Re-running it is safe — the script drops and recreates everything.
+
 ### 3. Load sample data *(optional)*
 
 ```bash
 psql -U postgres -d smart_ecommerce -f src/main/resources/sample_data.sql
 ```
 
-### 4. Configure the JDBC connection (JavaFX layer)
+### 4. Configure the Spring Boot connection
 
-Edit `src/main/resources/db.properties`:
-
-```properties
-db.url=jdbc:postgresql://localhost:5432/smart_ecommerce
-db.username=postgres
-db.password=your_password
-```
-
-### 5. Configure the Spring Boot connection (API layer)
-
-The Spring Boot layer reads from `src/main/resources/application.yml`.
-The `dev` profile connects to the same database out of the box:
+Edit the `dev` profile in `src/main/resources/application.yml`:
 
 ```yaml
-# already set in application.yml – dev profile
-datasource:
-  url: jdbc:postgresql://localhost:5432/smart_ecommerce
-  username: your_username
-  password: your_password
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_ecommerce
+    username: postgres
+    password: your_password   # ← change this
 ```
-
-Change the password to match your local instance.
-
----
-
-## Entity Relationship Diagram
-
-[View full ERD on Google Drive](https://drive.google.com/file/d/1tWjC7sltJAvSUzS5sJ1my1Q3v44_CR-u/view?usp=sharing)
-
-**Key relationships at a glance:**
-
-```
-users ──< products ──< order_items >── orders >── payments
-               │
-               └──< inventory
-               └──< reviews
-               └──< cart_items >── carts
-
-categories ──< products 
-```
-
-**Tables:** `users`, `addresses`, `categories`, `products`, `inventory`,
-`orders`, `order_items`, `payments`, `carts`, `cart_items`, `reviews`, `activity_logs` (JSONB).
 
 ---
 
 ## Running the Application
-
-### JavaFX desktop app
-
-```bash
-mvn clean javafx:run
-```
-
-### Spring Boot REST + GraphQL API
 
 ```bash
 # dev profile (default)
@@ -124,9 +78,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=prod
 
 The API starts on **port 8080**.
 
-| URL | Description |
+| URL | Purpose |
 |---|---|
-| `http://localhost:8080/swagger-ui.html` | Swagger / OpenAPI UI |
+| `http://localhost:8080/swagger-ui.html` | Swagger / OpenAPI interactive docs |
 | `http://localhost:8080/v3/api-docs` | Raw OpenAPI JSON |
 | `http://localhost:8080/graphiql` | GraphiQL explorer *(dev only)* |
 | `http://localhost:8080/graphql` | GraphQL endpoint (POST) |
@@ -137,71 +91,80 @@ The API starts on **port 8080**.
 ## Project Structure
 
 ```
-src/
-├── main/
-│   ├── java/org/example/
-│   │   │
-│   │   ├── Main.java                          # JavaFX entry point
-│   │   ├── config/DatabaseConfig.java         # Singleton JDBC connection
-│   │   ├── model/                             # Plain JDBC model classes
-│   │   ├── dao/                               # JDBC data-access objects
-│   │   ├── service/                           # JavaFX business logic
-│   │   ├── controller/                        # JavaFX FXML controllers
-│   │   ├── cache/InMemoryCache.java           # TTL ConcurrentHashMap cache
-│   │   └── util/ValidationUtil.java
-│   │
-│   └── api/                                   # Spring Boot layer
-│       ├── SmartEcommerceApplication.java     # Spring Boot entry point
-│       ├── entity/                            # JPA entities (same DB tables)
-│       │   ├── UserEntity.java
-│       │   ├── CategoryEntity.java
-│       │   ├── ProductEntity.java
-│       │   └── InventoryEntity.java
-│       ├── repository/                        # Spring Data JPA repositories
-│       ├── service/                           # Service interfaces
-│       ├── service/impl/                      # Service implementations
-│       ├── controller/                        # REST controllers
-│       │   ├── UserController.java
-│       │   ├── CategoryController.java
-│       │   ├── ProductController.java
-│       │   └── MonitoringController.java      # AOP metrics endpoint
-│       ├── graphql/                           # GraphQL resolvers
-│       │   ├── UserGraphQlController.java
-│       │   ├── CategoryGraphQlController.java
-│       │   ├── ProductGraphQlController.java
-│       │   ├── GraphQlExceptionResolver.java
-│       │   └── input/                         # GraphQL input / filter types
-│       ├── aspect/                            # AOP aspects
-│       │   ├── LoggingAspect.java             # @Before + @After
-│       │   ├── PerformanceMonitoringAspect.java  # @Around
-│       │   ├── ExceptionLoggingAspect.java    # @AfterThrowing
-│       │   └── MethodMetrics.java             # Thread-safe stats accumulator
-│       ├── dto/
-│       │   ├── ApiResponse.java               # { status, message, data }
-│       │   ├── PagedResponse.java
-│       │   └── request/                       # Validated request DTOs
-│       ├── validation/                        # Custom constraint annotations
-│       │   ├── ValidSlug + SlugValidator
-│       │   ├── ValidEnum + EnumValidator
-│       │   └── ValidDiscount + DiscountValidator
-│       └── config/
-│           ├── OpenApiConfig.java
-│           └── GlobalExceptionHandler.java
+src/main/java/org/ecommerce/api/
 │
-└── resources/
-    ├── db.properties                          # JavaFX JDBC config
-    ├── application.yml                        # Spring Boot multi-profile config
-    ├── schema.sql                             # Full PostgreSQL DDL
-    ├── sample_data.sql                        # Seed data
-    ├── graphql/schema.graphqls                # GraphQL schema
-    └── fxml/                                  # JavaFX layout files
+├── SmartEcommerceApplication.java      # Spring Boot entry point
+│
+├── entity/                             # JPA entities (one per table)
+│   ├── UserEntity.java
+│   ├── CategoryEntity.java
+│   ├── ProductEntity.java
+│   ├── InventoryEntity.java
+│   ├── OrderEntity.java
+│   ├── OrderItemEntity.java
+│   ├── PaymentEntity.java
+│   ├── CartEntity.java
+│   ├── CartItemEntity.java
+│   ├── ReviewEntity.java
+│   └── ActivityLogEntity.java
+│
+├── repository/                         # Spring Data JPA repositories
+│
+├── service/                            # Service interfaces
+├── service/impl/                       # Service implementations (@Transactional)
+│
+├── controller/                         # REST controllers
+│   ├── UserController.java
+│   ├── CategoryController.java
+│   ├── ProductController.java
+│   ├── CartController.java
+│   ├── OrderController.java
+│   ├── PaymentController.java
+│   ├── ReviewController.java
+│   ├── ActivityLogController.java
+│   └── MonitoringController.java
+│
+├── graphql/                            # GraphQL resolvers (reuse same services)
+│   ├── UserGraphQlController.java
+│   ├── CategoryGraphQlController.java
+│   ├── ProductGraphQlController.java
+│   ├── GraphQlExceptionResolver.java
+│   └── input/
+│
+├── aspect/                             # AOP cross-cutting concerns
+│   ├── LoggingAspect.java              # @Before + @After entry/exit logging
+│   ├── PerformanceMonitoringAspect.java # @Around timing + slow-call detection
+│   ├── ExceptionLoggingAspect.java     # @AfterThrowing structured error logging
+│   └── MethodMetrics.java              # Thread-safe stats accumulator
+│
+├── dto/
+│   ├── ApiResponse.java                # { status, message, data }
+│   ├── PagedResponse.java
+│   └── request/                        # Validated request DTOs
+│
+├── validation/                         # Custom constraint annotations
+│   ├── ValidSlug + SlugValidator
+│   ├── ValidEnum + EnumValidator
+│   └── ValidDiscount + DiscountValidator
+│
+└── config/
+    ├── OpenApiConfig.java
+    └── GlobalExceptionHandler.java
+
+src/main/resources/
+├── application.yml                     # Multi-profile Spring Boot config
+├── schema.sql                          # Full PostgreSQL DDL (run once)
+├── sample_data.sql                     # Seed data
+└── graphql/schema.graphqls             # GraphQL type schema
 ```
 
 ---
 
 ## REST API
 
-All responses use a standard envelope:
+### Response envelope
+
+Every response is wrapped in a standard envelope:
 
 ```json
 {
@@ -211,7 +174,7 @@ All responses use a standard envelope:
 }
 ```
 
-Paginated responses wrap a `PagedResponse` inside `data`:
+Paginated list responses wrap a `PagedResponse` inside `data`:
 
 ```json
 {
@@ -226,55 +189,92 @@ Paginated responses wrap a `PagedResponse` inside `data`:
 }
 ```
 
-### Endpoints
+### Endpoint Reference
 
-#### Users — `GET /api/users`
+#### Users — `/api/users`
 
-| Parameter | Type | Description |
+| Method | Path | Description |
 |---|---|---|
-| `keyword` | String | Partial match on name, email, or username |
-| `role` | String | `customer` \| `seller` \| `admin` |
-| `active` | Boolean | Account status filter |
-| `page` | int | Zero-based page index (default 0) |
-| `size` | int | Page size (default 20) |
-| `sortBy` | String | `fullName` \| `email` \| `createdAt` |
-| `sortDir` | String | `asc` \| `desc` |
+| GET | `/api/users` | List users; filter by `keyword`, `role`, `active`; sort by `sortBy`/`sortDir` |
+| GET | `/api/users/{id}` | Get user by ID |
+| POST | `/api/users` | Create user |
+| PUT | `/api/users/{id}` | Update user |
+| DELETE | `/api/users/{id}` | Delete user |
 
-Full CRUD: `GET /api/users/{id}` · `POST /api/users` · `PUT /api/users/{id}` · `DELETE /api/users/{id}`
+#### Categories — `/api/categories`
 
-#### Products — `GET /api/products`
-
-| Parameter | Type | Description |
+| Method | Path | Description |
 |---|---|---|
-| `keyword` | String | Case-insensitive partial name search |
-| `categoryId` | Integer | Filter by category |
-| `status` | String | `active` \| `inactive` \| `draft` |
-| `sellerId` | Long | Filter by seller |
-| `page` / `size` | int | Pagination (size clamped to 1–100) |
-| `sortBy` | String | `name` \| `basePrice` \| `avgRating` \| `createdAt` |
-| `sortDir` | String | `asc` \| `desc` |
+| GET | `/api/categories` | List categories; filter by `keyword`, `active` |
+| GET | `/api/categories/{id}` | Get category by ID |
+| POST | `/api/categories` | Create category |
+| PUT | `/api/categories/{id}` | Update category |
+| DELETE | `/api/categories/{id}` | Delete category |
 
-Full CRUD: `GET /api/products/{id}` · `POST /api/products` · `PUT /api/products/{id}` · `DELETE /api/products/{id}`
+#### Products — `/api/products`
 
-#### Categories — `GET /api/categories`
-
-| Parameter | Type | Description |
+| Method | Path | Description |
 |---|---|---|
-| `keyword` | String | Partial name match |
-| `active` | Boolean | Status filter |
-| `page` / `size` | int | Pagination |
+| GET | `/api/products` | List products; filter by `keyword`, `categoryId`, `status`, `sellerId` |
+| GET | `/api/products/{id}` | Get product by ID |
+| POST | `/api/products` | Create product (also initialises inventory) |
+| PUT | `/api/products/{id}` | Update product |
+| DELETE | `/api/products/{id}` | Delete product |
 
-Full CRUD: `GET /api/categories/{id}` · `POST /api/categories` · `PUT /api/categories/{id}` · `DELETE /api/categories/{id}`
+#### Carts — `/api/carts`
 
-### Key indexes backing the REST queries
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/carts` | List all carts (paginated) |
+| GET | `/api/carts/{id}` | Get cart by ID |
+| GET | `/api/carts/user/{userId}` | Get the active cart for a user |
+| POST | `/api/carts` | Create a new cart for a user (409 if one already exists) |
+| GET | `/api/carts/{id}/items` | List items in a cart |
+| POST | `/api/carts/{id}/items` | Add a product to a cart (merges qty if already present) |
+| PUT | `/api/carts/{id}/items/{itemId}` | Update item quantity |
+| DELETE | `/api/carts/{id}/items/{itemId}` | Remove item from cart |
 
-| Index | Type | Column | Benefit |
-|---|---|---|---|
-| `idx_products_name_btree` | B-tree | `lower(name)` | Fast `ILIKE` keyword search |
-| `idx_products_name_fts` | GIN tsvector | `name` | Full-text search support |
-| `idx_products_category_id` | B-tree | `category_id` | Fast category filter |
-| `idx_products_status` | B-tree | `status` | Fast status filter |
-| `idx_users_email` | B-tree | `email` | Fast login/uniqueness check |
+#### Orders — `/api/orders`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/orders` | List orders; filter by `userId`, `status` |
+| GET | `/api/orders/{id}` | Get order by ID |
+| GET | `/api/orders/{id}/items` | Get line items for an order |
+| POST | `/api/orders` | Place a new order (calculates subtotal from current product prices) |
+| PATCH | `/api/orders/{id}/status` | Update order status (`pending → processing → completed \| cancelled`) |
+
+#### Payments — `/api/payments`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/payments` | List payments; filter by `orderId`, `status` |
+| GET | `/api/payments/{id}` | Get payment by ID |
+| POST | `/api/payments` | Record a payment against an order |
+| PATCH | `/api/payments/{id}/status` | Update payment status; `completed` also records `paidAt` |
+
+Allowed `status` values: `pending` · `completed` · `failed` · `refunded`
+
+#### Reviews — `/api/reviews`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/reviews` | List reviews; filter by `productId`, `approved` |
+| GET | `/api/reviews/{id}` | Get review by ID |
+| POST | `/api/reviews` | Submit a review (one per user per product) |
+| PATCH | `/api/reviews/{id}/approve` | Approve a review (makes it publicly visible) |
+| DELETE | `/api/reviews/{id}` | Delete a review |
+
+#### Activity Logs — `/api/activity-logs`
+
+Append-only user event log. `eventData` must be a valid JSON string.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/activity-logs` | List logs; filter by `userId`, `eventType` |
+| POST | `/api/activity-logs` | Record an event (`userId` optional for anonymous events) |
+
+Example `eventData` values: `add_to_cart`, `page_view`, `checkout_started`, `search`.
 
 ---
 
@@ -282,6 +282,8 @@ Full CRUD: `GET /api/categories/{id}` · `POST /api/categories` · `PUT /api/cat
 
 **Endpoint:** `POST /graphql`  
 **Explorer:** `GET /graphiql` *(dev profile only)*
+
+GraphQL and REST share the same service and repository beans — there is no duplicated business logic.
 
 ### Schema overview
 
@@ -317,7 +319,7 @@ type Mutation {
 ### Example queries
 
 ```graphql
-# Filtered product catalog — only fetch the fields you need
+# Filtered product catalog — fetch only the fields the client needs
 query {
   products(
     filter: { keyword: "headphones", status: "active" }
@@ -347,17 +349,13 @@ mutation {
 }
 ```
 
-GraphQL and REST **coexist without conflict** — GraphQL resolvers reuse the same
-service and repository beans as the REST controllers.
-
 ---
 
 ## AOP — Logging & Monitoring
 
-Three aspects intercept the service layer as cross-cutting concerns so no
-business logic class contains logging or timing code.
+Three aspects intercept the service layer as cross-cutting concerns so no business-logic class contains logging or timing code.
 
-### How the three aspects interact on a single service call
+### How the aspects interact on a single service call
 
 ```
 Request arrives
@@ -375,7 +373,7 @@ Request arrives
    ├─ LoggingAspect @After
    │     → "← EXIT  ProductServiceImpl.create()"
    │
-   └─ ExceptionLoggingAspect @AfterThrowing  (only if exception thrown)
+   └─ ExceptionLoggingAspect @AfterThrowing  (only on exception)
          → WARN for 4xx client errors
          → ERROR + stack trace for unexpected failures
 ```
@@ -385,10 +383,10 @@ Request arrives
 | Aspect | Advice | Pointcut | Purpose |
 |---|---|---|---|
 | `LoggingAspect` | `@Before` + `@After` | `service.impl.*.*(..)` | Entry/exit breadcrumbs |
-| `PerformanceMonitoringAspect` | `@Around` | `service.impl.*.*(..)` | Execution time, slow-call detection, per-method stats |
-| `ExceptionLoggingAspect` | `@AfterThrowing` | `org.ecommerce.api..*(..)` | Structured exception logging before propagation |
+| `PerformanceMonitoringAspect` | `@Around` | `service.impl.*.*(..)` | Execution time + slow-call detection |
+| `ExceptionLoggingAspect` | `@AfterThrowing` | `org.ecommerce.api..*(..)` | Structured exception logging |
 
-### Live metrics
+### Live metrics endpoint
 
 ```bash
 GET /api/monitoring/metrics
@@ -414,32 +412,32 @@ Slow-method threshold is configurable per profile:
 ```yaml
 # application.yml
 monitoring:
-  slow-method-threshold-ms: 500   # default; lower in test to catch regressions early
+  slow-method-threshold-ms: 500
 ```
 
 ---
 
 ## Validation
 
-### Standard Bean Validation (`jakarta.validation`)
+### Standard Bean Validation
 
 | Annotation | Used on | Rule |
 |---|---|---|
-| `@NotBlank` | All required string fields | Must not be null or blank |
+| `@NotBlank` | Required string fields | Must not be null or blank |
 | `@Email` | `UserRequest.email` | Valid RFC email format |
-| `@Size` | Strings | Max length matching DB column size |
-| `@DecimalMin` | Prices | Must be ≥ 0 |
-| `@Min` | Stock, reorder level | Must be ≥ 0 |
+| `@Size` | Strings | Max length matching DB column |
+| `@DecimalMin` | Prices, amounts | Must be ≥ 0 (or > 0 where required) |
+| `@Min` / `@Max` | Quantities, rating | Numeric range |
 
-### Custom validators (`org.ecommerce.api.validation`)
+### Custom validators
 
-| Annotation | Type | Rule enforced |
-|---|---|---|
-| `@ValidSlug` | Field | Slug matches `^[a-z0-9]+(-[a-z0-9]+)*$` — rejects uppercase, leading/trailing/consecutive hyphens |
-| `@ValidEnum` | Field | Generic allowed-values constraint — `@ValidEnum(allowed = {"active","inactive","draft"})` |
-| `@ValidDiscount` | Class (ProductRequest) | Cross-field: `discountPrice < basePrice` when both are present; violation pinned to the `discountPrice` field |
+| Annotation | Rule enforced |
+|---|---|
+| `@ValidSlug` | Matches `^[a-z0-9]+(-[a-z0-9]+)*$` — no uppercase, no consecutive hyphens |
+| `@ValidEnum` | Allowed-values constraint — `@ValidEnum(allowed = {"active","inactive","draft"})` |
+| `@ValidDiscount` | Cross-field: `discountPrice < basePrice` when both are present |
 
-Validation errors return HTTP 400 with all violation messages in the standard envelope:
+Validation errors return **HTTP 400** with all messages joined in the envelope:
 
 ```json
 {
@@ -451,65 +449,23 @@ Validation errors return HTTP 400 with all violation messages in the standard en
 
 ---
 
-## Environment Profiles
+## REST vs GraphQL — Trade-offs
 
-| Profile | Database | `ddl-auto` | SQL logging | GraphiQL | Slow threshold |
-|---|---|---|---|---|---|
-| `dev` *(default)* | `localhost/smart_ecommerce` | `validate` | on | on | 500 ms |
-| `test` | `localhost/smart_ecommerce_test` | `create-drop` | off | on | 500 ms |
-| `prod` | `${DATABASE_URL}` env var | `validate` | off | **off** | 500 ms |
+Both APIs share the same service and repository layer. Differences come from **data shape**, **round trips**, and **protocol overhead**.
 
-Switch profile:
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=test
-```
+### Over-fetching and under-fetching
 
----
-
-## REST vs GraphQL — Performance Analysis
-
-Both APIs share the same service and repository layer, so the database queries are
-identical. The differences in performance come from **data shape**, **round trips**,
-and **protocol overhead**.
-
----
-
-### Methodology
-
-Measurements are collected automatically by the `PerformanceMonitoringAspect` (`@Around`).
-After exercising either API, hit the live metrics endpoint:
-
-```bash
-GET http://localhost:8080/api/monitoring/metrics
-```
-
-The response shows per-method invocation counts, average execution time, slow-call
-counts, and the last recorded time for every service method called since startup.
-
----
-
-### Scenario 1 — Fetching the product catalog (list)
-
-#### REST — `GET /api/products?page=0&size=20`
-
-The response always includes **all mapped fields** regardless of what the client needs:
+REST always returns all mapped fields. A mobile client showing a card view gets the full product object:
 
 ```json
 {
   "productId": 1, "name": "...", "slug": "...", "description": "...",
   "basePrice": 129.99, "discountPrice": 99.99, "effectivePrice": 99.99,
-  "status": "active", "avgRating": 4.3, "reviewCount": 18,
-  "seller": { "userId": 5, "fullName": "...", "email": "..." },
-  "category": { "categoryId": 2, "name": "Electronics", "slug": "electronics" },
-  "inventory": { "qtyInStock": 45, "reservedQty": 3, "reorderLevel": 10 }
+  "status": "active", "avgRating": 4.3, "reviewCount": 18, ...
 }
 ```
 
-**Typical payload for 20 products: ~8–12 KB**
-
-#### GraphQL — selective field fetch
-
-A mobile client that only needs a card view requests exactly what it needs:
+The same client using GraphQL requests only what it renders:
 
 ```graphql
 query {
@@ -520,127 +476,65 @@ query {
 }
 ```
 
-**Typical payload for the same 20 products: ~1.5–2.5 KB (4–5× smaller)**
+**Payload difference: ~10 KB (REST) vs ~2 KB (GraphQL) for 20 products.**
 
----
+### Round trips for related data
 
-### Scenario 2 — Fetching a single resource with related data
+REST embeds related resources (seller, category, inventory) in the product response — no extra calls needed for those. For anything not embedded, the client makes additional requests.
 
-#### REST — requires multiple requests
+GraphQL lets the client declare the full shape of the response — related types across multiple associations — in one POST.
 
-To display a product detail page with seller info and inventory:
+### Writes
 
-```
-GET /api/products/1        → product fields
-(seller + category embedded in the response — no extra calls needed for these)
-```
+REST: one HTTP request per resource (`POST /api/users`, `POST /api/products` …).
 
-When the client also needs other resources not in the product response (e.g., a
-seller's full product catalog), it must make **additional requests**.
-
-#### GraphQL — one round trip for any shape
-
-```graphql
-query {
-  product(id: "1") {
-    name basePrice effectivePrice
-    seller   { fullName email }
-    category { name slug }
-    inventory { qtyInStock reservedQty }
-  }
-}
-```
-
-One POST, one response — **no matter how many related types are requested**.
-
----
-
-### Scenario 3 — Creating resources (writes)
-
-#### REST — one request per resource
-
-```bash
-POST /api/users        # 1 request
-POST /api/categories   # 1 request
-POST /api/products     # 1 request  — 3 total round trips
-```
-
-#### GraphQL — batch multiple mutations
+GraphQL: multiple mutations in one request using aliases:
 
 ```graphql
 mutation {
-  newCategory: createCategory(input: { name: "...", slug: "..." }) { categoryId }
-  newProduct:  createProduct(input:  { name: "...", ... })         { productId  }
+  newCategory: createCategory(input: { name: "Audio", slug: "audio" }) { categoryId }
+  newProduct:  createProduct(input:  { name: "Headphones", ... })       { productId  }
 }
 ```
 
-Two mutations in **one HTTP request** — useful when creating dependent resources
-in sequence and the client can tolerate a single atomic response.
-
----
-
-### Benchmark Summary
-
-The following figures are representative for a local PostgreSQL instance (dev profile).
-Run `GET /api/monitoring/metrics` after load testing to capture your own numbers.
-
-| Scenario | REST | GraphQL | Winner |
-|---|---|---|---|
-| Paginated list — full fields | ~25–40 ms | ~28–45 ms | Tie |
-| Paginated list — 3 fields only | ~25–40 ms, ~10 KB | ~28–45 ms, ~2 KB | GraphQL (bandwidth) |
-| Single resource by ID | ~8–15 ms | ~10–18 ms | REST (less overhead) |
-| Resource + 2 related types | 1 req, ~8 KB | 1 req, ~2–8 KB | GraphQL (selective) |
-| Bulk create (5 resources) | 5 requests | 1 request | GraphQL (round trips) |
-| Simple CRUD from server-side app | Straightforward | Verbose query strings | REST (ergonomics) |
-
----
-
-### Key Trade-offs
+### Summary
 
 | Dimension | REST | GraphQL |
 |---|---|---|
-| **Over-fetching** | Always returns all mapped fields | Client requests only the fields it needs |
-| **Under-fetching** | May need multiple requests for related data | One query can span multiple types |
-| **HTTP caching** | Native (GET responses cached by URL) | Harder — all queries are POST |
-| **Tooling & ecosystem** | Mature (curl, Postman, browser) | GraphiQL explorer, schema introspection |
-| **Error model** | HTTP status codes (400/404/409/500) | `errors` array in 200 response |
-| **Versioning** | URL versioning (`/v2/products`) | Schema evolution (deprecate fields) |
-| **Learning curve** | Low | Moderate (schema, resolvers, queries) |
-| **Best for** | Server-to-server, public APIs, simple CRUD | Client-driven UIs, mobile, dashboards |
+| Over-fetching | Always returns all mapped fields | Client requests only what it needs |
+| Under-fetching | May need multiple requests | One query spans multiple types |
+| HTTP caching | Native (GET cached by URL) | Hard — all queries are POST |
+| Error model | HTTP status codes | `errors` array inside a 200 response |
+| Versioning | URL versioning (`/v2/products`) | Field deprecation in schema |
+| Learning curve | Low | Moderate |
+| Best for | Server-to-server, public APIs, simple CRUD | Client-driven UIs, mobile, dashboards |
 
 ---
 
-### Conclusion
+## Environment Profiles
 
-- **Use REST** when you control both client and server, when HTTP caching matters,
-  or when the API is consumed by external parties who expect standard HTTP semantics.
-- **Use GraphQL** when the client is a frontend (web/mobile) that renders many
-  different views from the same data, each needing a different subset of fields —
-  GraphQL eliminates over-fetching and reduces the number of round trips.
-- **This project uses both**: REST for straightforward CRUD operations and server
-  integrations; GraphQL for the same data exposed to clients that benefit from
-  field selection and batched queries.
+| Profile | Database | `ddl-auto` | SQL logging | GraphiQL |
+|---|---|---|---|---|
+| `dev` *(default)* | `localhost/smart_ecommerce` | `validate` | on | on |
+| `test` | `localhost/smart_ecommerce_test` | `create-drop` | off | on |
+| `prod` | `${DATABASE_URL}` env var | `validate` | off | **off** |
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=test
+```
 
 ---
 
 ## Dependencies
 
-### JavaFX layer
-
-| Dependency | Version | Purpose |
-|---|---|---|
-| `org.postgresql:postgresql` | 42.7.10 | JDBC driver |
-| `org.openjfx:javafx-controls` | 21.0.2 | UI controls |
-| `org.openjfx:javafx-fxml` | 21.0.2 | FXML loader |
-
-### Spring Boot API layer *(managed by Spring Boot BOM 3.3.5)*
-
-| Starter | Key libraries included | Purpose |
-|---|---|---|
-| `spring-boot-starter-web` | Spring MVC, Tomcat, Jackson | REST controllers |
-| `spring-boot-starter-data-jpa` | Hibernate, Spring Data | ORM + repositories |
-| `spring-boot-starter-validation` | Hibernate Validator | Bean Validation |
-| `spring-boot-starter-graphql` | Spring GraphQL, graphql-java | GraphQL endpoint |
-| `spring-boot-starter-aop` | Spring AOP, AspectJ Weaver | AOP aspects |
-| `spring-boot-starter-test` | JUnit 5, Mockito, AssertJ | Testing *(test scope)* |
-| `springdoc-openapi-starter-webmvc-ui` | 2.6.0 | Swagger UI + OpenAPI docs |
+| Starter / Library | Purpose |
+|---|---|
+| `spring-boot-starter-web` | REST controllers, Tomcat, Jackson |
+| `spring-boot-starter-data-jpa` | Hibernate 6, Spring Data repositories |
+| `spring-boot-starter-validation` | Bean Validation (Jakarta) |
+| `spring-boot-starter-graphql` | Spring GraphQL + graphql-java |
+| `spring-boot-starter-aop` | AspectJ-based AOP |
+| `spring-boot-starter-actuator` | Health and metrics endpoints |
+| `spring-boot-starter-test` | JUnit 5, Mockito, AssertJ *(test scope)* |
+| `org.postgresql:postgresql` | PostgreSQL JDBC driver |
+| `springdoc-openapi-starter-webmvc-ui` | Swagger UI + OpenAPI 3 docs |

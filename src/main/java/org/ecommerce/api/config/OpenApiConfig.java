@@ -20,7 +20,7 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         String serverUrl = activeProfile.equals("prod")
-                ? "https://api.smartecommerce.example.com"
+                ? "https://api.smartecommerce.ecommerce.com"
                 : "http://localhost:8080";
 
         return new OpenAPI()
@@ -43,7 +43,7 @@ public class OpenApiConfig {
                                 """)
                         .contact(new Contact()
                                 .name("Smart E-Commerce Team")
-                                .email("dev@smartecommerce.example.com"))
+                                .email("dev@smartecommerce.ecommerce.com"))
                         .license(new License()
                                 .name("MIT")
                                 .url("https://opensource.org/licenses/MIT")))

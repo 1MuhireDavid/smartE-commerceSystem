@@ -24,7 +24,8 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public PagedResponse<CategoryEntity> findAll(String keyword, Boolean active, Pageable pageable) {
-        Page<CategoryEntity> page = categoryRepository.search(keyword, active, pageable);
+        String pattern = keyword != null ? ("%" + keyword.toLowerCase() + "%") : null;
+        Page<CategoryEntity> page = categoryRepository.search(pattern, active, pageable);
         return PagedResponse.of(page);
     }
 

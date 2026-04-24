@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * AOP aspect that logs method entry and exit for every public method in the
- * service implementation layer ({@code org.example.api.service.impl}).
+ * service implementation layer ({@code org.ecommerce.api.service.impl}).
  *
  * <h2>Why AOP for logging?</h2>
  * <p>Without AOP, every service method would need identical try/finally blocks
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  * </ul>
  *
  * <h2>Pointcut design</h2>
- * <p>The pointcut targets {@code execution(public * org.example.api.service.impl.*.*(..))},
+ * <p>The pointcut targets {@code execution(public * org.ecommerce.api.service.impl.*.*(..))},
  * which matches every public method in every class under the {@code service.impl}
  * package. Restricting to {@code impl} (not the interfaces) avoids double-firing
  * on interface proxy calls.
@@ -47,7 +47,7 @@ public class LoggingAspect {
      * Declared as a named pointcut so it can be referenced by both advice methods
      * without duplicating the expression string.
      */
-    @Pointcut("execution(public * org.example.api.service.impl.*.*(..))")
+    @Pointcut("execution(public * org.ecommerce.api.service.impl.*.*(..))")
     public void serviceImplMethods() {}
 
     /**

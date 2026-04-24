@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * AOP aspect that centrally logs every exception thrown within the API layer
- * ({@code org.example.api}) before it propagates to the caller.
+ * ({@code org.ecommerce.api}) before it propagates to the caller.
  *
  * <h2>Why AOP for exception logging?</h2>
  * <p>Without AOP, catching-and-rethrowing in every method pollutes business
@@ -36,7 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
  * </ul>
  *
  * <h2>Pointcut scope</h2>
- * <p>Targets every public method in {@code org.example.api} and its sub-packages.
+ * <p>Targets every public method in {@code org.ecommerce.api} and its sub-packages.
  * This covers services, controllers, and GraphQL resolvers — any layer that can
  * throw an exception worth recording.
  */
@@ -51,7 +51,7 @@ public class ExceptionLoggingAspect {
      * Wider than the service-only pointcuts so that controller-level errors
      * (e.g., missing path variables, type mismatches) are also captured.
      */
-    @Pointcut("execution(public * org.example.api..*(..))")
+    @Pointcut("execution(public * org.ecommerce.api..*(..))")
     public void apiLayerPublicMethods() {}
 
     /**

@@ -55,7 +55,7 @@ public class PerformanceMonitoringAspect {
     /** Live per-method statistics. Key format: {@code SimpleClassName.methodName}. */
     private final ConcurrentHashMap<String, MethodMetrics> metricsMap = new ConcurrentHashMap<>();
 
-    @Pointcut("execution(public * org.example.api.service.impl.*.*(..))")
+    @Pointcut("execution(public * org.ecommerce.api.service.impl.*.*(..))")
     public void serviceImplMethods() {}
 
     /**

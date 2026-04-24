@@ -36,14 +36,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         LEFT JOIN FETCH p.category
         LEFT JOIN FETCH p.seller
         LEFT JOIN FETCH p.inventory
-        WHERE (:keyword    IS NULL
-               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        WHERE (:pattern    IS NULL
+               OR LOWER(p.name) LIKE :pattern)
           AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
           AND (:status     IS NULL OR p.status = :status)
           AND (:sellerId   IS NULL OR p.seller.userId = :sellerId)
         """)
     Page<ProductEntity> search(
-            @Param("keyword")    String keyword,
+            @Param("pattern")    String pattern,
             @Param("categoryId") Integer categoryId,
             @Param("status")     String status,
             @Param("sellerId")   Long sellerId,
@@ -54,14 +54,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
      */
     @Query("""
         SELECT COUNT(p) FROM ProductEntity p
-        WHERE (:keyword    IS NULL
-               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        WHERE (:pattern    IS NULL
+               OR LOWER(p.name) LIKE :pattern)
           AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
           AND (:status     IS NULL OR p.status = :status)
           AND (:sellerId   IS NULL OR p.seller.userId = :sellerId)
         """)
     long countSearch(
-            @Param("keyword")    String keyword,
+            @Param("pattern")    String pattern,
             @Param("categoryId") Integer categoryId,
             @Param("status")     String status,
             @Param("sellerId")   Long sellerId);
