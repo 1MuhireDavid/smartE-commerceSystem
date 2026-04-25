@@ -12,11 +12,14 @@ A Spring Boot REST + GraphQL API for an e-commerce platform, backed by PostgreSQ
 4. [Project Structure](#project-structure)
 5. [REST API](#rest-api)
 6. [GraphQL API](#graphql-api)
-7. [AOP — Logging & Monitoring](#aop--logging--monitoring)
-8. [Validation](#validation)
-9. [REST vs GraphQL — Trade-offs](#rest-vs-graphql--trade-offs)
-10. [Environment Profiles](#environment-profiles)
-11. [Dependencies](#dependencies)
+7. [Spring Data Repositories](#spring-data-repositories)
+8. [Transaction Management](#transaction-management)
+9. [Caching](#caching)
+10. [AOP — Logging & Monitoring](#aop--logging--monitoring)
+11. [Validation](#validation)
+12. [REST vs GraphQL — Trade-offs](#rest-vs-graphql--trade-offs)
+13. [Environment Profiles](#environment-profiles)
+14. [Dependencies](#dependencies)
 
 ---
 
@@ -85,6 +88,7 @@ The API starts on **port 8080**.
 | `http://localhost:8080/graphiql` | GraphiQL explorer *(dev only)* |
 | `http://localhost:8080/graphql` | GraphQL endpoint (POST) |
 | `http://localhost:8080/api/monitoring/metrics` | Live AOP performance stats |
+| `http://localhost:8080/api/monitoring/cache-stats` | Caffeine cache hit/miss statistics |
 
 ---
 
@@ -93,7 +97,7 @@ The API starts on **port 8080**.
 ```
 src/main/java/org/ecommerce/api/
 │
-├── SmartEcommerceApplication.java      # Spring Boot entry point
+├── SmartEcommerceApplication.java      # Spring Boot entry point (@EnableCaching)
 │
 ├── entity/                             # JPA entities (one per table)
 │   ├── UserEntity.java
@@ -109,6 +113,17 @@ src/main/java/org/ecommerce/api/
 │   └── ActivityLogEntity.java
 │
 ├── repository/                         # Spring Data JPA repositories
+│   ├── UserRepository.java             # existsByEmail/Username; JPQL search
+│   ├── CategoryRepository.java         # existsBySlug; JPQL search
+│   ├── ProductRepository.java          # existsBySlug; native FTS; JOIN FETCH by ID
+│   ├── InventoryRepository.java        # derived lookup; JPQL low-stock; native deductStock
+│   ├── OrderRepository.java            # JOIN FETCH search; JPQL stats; native revenue sum
+│   ├── OrderItemRepository.java        # derived findByOrder_OrderId
+│   ├── PaymentRepository.java          # JPQL search
+│   ├── CartRepository.java             # derived findByUser_UserIdAndActiveTrue
+│   ├── CartItemRepository.java         # derived findByCart_CartId/AndProduct_ProductId
+│   ├── ReviewRepository.java           # existsByProduct+User; JPQL search
+│   └── ActivityLogRepository.java      # JPQL search
 │
 ├── service/                            # Service interfaces
 ├── service/impl/                       # Service implementations (@Transactional)
@@ -117,6 +132,7 @@ src/main/java/org/ecommerce/api/
 │   ├── UserController.java
 │   ├── CategoryController.java
 │   ├── ProductController.java
+│   ├── InventoryController.java
 │   ├── CartController.java
 │   ├── OrderController.java
 │   ├── PaymentController.java
@@ -140,6 +156,7 @@ src/main/java/org/ecommerce/api/
 ├── dto/
 │   ├── ApiResponse.java                # { status, message, data }
 │   ├── PagedResponse.java
+│   ├── OrderStatsDto.java              # Aggregate order counts and revenue
 │   └── request/                        # Validated request DTOs
 │
 ├── validation/                         # Custom constraint annotations
@@ -196,30 +213,36 @@ Paginated list responses wrap a `PagedResponse` inside `data`:
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/users` | List users; filter by `keyword`, `role`, `active`; sort by `sortBy`/`sortDir` |
-| GET | `/api/users/{id}` | Get user by ID |
-| POST | `/api/users` | Create user |
-| PUT | `/api/users/{id}` | Update user |
-| DELETE | `/api/users/{id}` | Delete user |
+| GET | `/api/users/{id}` | Get user by ID *(cached)* |
+| POST | `/api/users` | Create user *(evicts users cache)* |
+| PUT | `/api/users/{id}` | Update user *(evicts user from cache)* |
+| DELETE | `/api/users/{id}` | Delete user *(evicts user from cache)* |
 
 #### Categories — `/api/categories`
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/categories` | List categories; filter by `keyword`, `active` |
-| GET | `/api/categories/{id}` | Get category by ID |
-| POST | `/api/categories` | Create category |
-| PUT | `/api/categories/{id}` | Update category |
-| DELETE | `/api/categories/{id}` | Delete category |
+| GET | `/api/categories/{id}` | Get category by ID *(cached)* |
+| POST | `/api/categories` | Create category *(evicts categories cache)* |
+| PUT | `/api/categories/{id}` | Update category *(evicts category from cache)* |
+| DELETE | `/api/categories/{id}` | Delete category *(evicts category from cache)* |
 
 #### Products — `/api/products`
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/products` | List products; filter by `keyword`, `categoryId`, `status`, `sellerId` |
-| GET | `/api/products/{id}` | Get product by ID |
-| POST | `/api/products` | Create product (also initialises inventory) |
-| PUT | `/api/products/{id}` | Update product |
-| DELETE | `/api/products/{id}` | Delete product |
+| GET | `/api/products` | List products; full-text search by `keyword`, filter by `categoryId`, `status`, `sellerId` |
+| GET | `/api/products/{id}` | Get product by ID *(cached)* |
+| POST | `/api/products` | Create product *(evicts products cache; also initialises inventory row)* |
+| PUT | `/api/products/{id}` | Update product *(evicts product from cache)* |
+| DELETE | `/api/products/{id}` | Delete product *(evicts product from cache)* |
+
+#### Inventory — `/api/inventory`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/inventory/low-stock` | List products whose `qty_in_stock ≤ reorder_level` |
 
 #### Carts — `/api/carts`
 
@@ -241,7 +264,8 @@ Paginated list responses wrap a `PagedResponse` inside `data`:
 | GET | `/api/orders` | List orders; filter by `userId`, `status` |
 | GET | `/api/orders/{id}` | Get order by ID |
 | GET | `/api/orders/{id}/items` | Get line items for an order |
-| POST | `/api/orders` | Place a new order (calculates subtotal from current product prices) |
+| GET | `/api/orders/stats` | Aggregate counts and revenue grouped by status, plus total paid revenue |
+| POST | `/api/orders` | Place a new order (deducts stock; rolls back entirely on insufficient stock) |
 | PATCH | `/api/orders/{id}/status` | Update order status (`pending → processing → completed \| cancelled`) |
 
 #### Payments — `/api/payments`
@@ -251,7 +275,7 @@ Paginated list responses wrap a `PagedResponse` inside `data`:
 | GET | `/api/payments` | List payments; filter by `orderId`, `status` |
 | GET | `/api/payments/{id}` | Get payment by ID |
 | POST | `/api/payments` | Record a payment against an order |
-| PATCH | `/api/payments/{id}/status` | Update payment status; `completed` also records `paidAt` |
+| PATCH | `/api/payments/{id}/status` | Update payment status; `completed` also sets `paidAt` and syncs `order.paymentStatus` |
 
 Allowed `status` values: `pending` · `completed` · `failed` · `refunded`
 
@@ -347,6 +371,282 @@ mutation {
     productId name effectivePrice status
   }
 }
+```
+
+---
+
+## Spring Data Repositories
+
+All repositories extend `JpaRepository<Entity, ID>` and use three query styles depending on the
+complexity of the required SQL.
+
+### Query styles
+
+#### 1. Derived queries
+
+Spring Data generates the SQL from the method name at startup — no `@Query` needed.
+
+```java
+// CartItemRepository — resolves to: WHERE c.cart_id = ? AND c.product_id = ?
+Optional<CartItemEntity> findByCart_CartIdAndProduct_ProductId(Long cartId, Long productId);
+
+// CartRepository — resolves to: WHERE user_id = ? AND active = true
+Optional<CartEntity> findByUser_UserIdAndActiveTrue(Long userId);
+
+// UserRepository — resolves to: SELECT COUNT(*) > 0 WHERE email = ?
+boolean existsByEmail(String email);
+```
+
+Use derived queries when the filter maps to a single path expression and no joins or aggregates
+are needed.
+
+#### 2. JPQL (`@Query` without `nativeQuery = true`)
+
+Used when the filter logic cannot be expressed as a single method-name path, or when the query
+groups, aggregates, or applies `JOIN FETCH`.
+
+```java
+// UserRepository — multi-field LIKE search with nullable parameters
+@Query("""
+    SELECT u FROM UserEntity u
+    WHERE (:role IS NULL OR u.role = :role)
+      AND (:active IS NULL OR u.active = :active)
+      AND (:pattern IS NULL
+           OR LOWER(u.fullName) LIKE :pattern
+           OR LOWER(u.email)    LIKE :pattern
+           OR LOWER(u.username) LIKE :pattern)
+    """)
+Page<UserEntity> search(..., Pageable pageable);
+
+// OrderRepository — JOIN FETCH to prevent N+1 on order.user
+// The explicit countQuery is required because JOIN FETCH prevents Spring Data from
+// deriving a correct count for pagination automatically.
+@Query(value = "SELECT o FROM OrderEntity o JOIN FETCH o.user WHERE ...",
+       countQuery = "SELECT COUNT(o) FROM OrderEntity o WHERE ...")
+Page<OrderEntity> search(..., Pageable pageable);
+
+// OrderRepository — aggregate per status for the stats dashboard
+@Query("SELECT o.status, COUNT(o), SUM(o.totalAmount) FROM OrderEntity o GROUP BY o.status")
+List<Object[]> getStatsByStatus();
+
+// InventoryRepository — compares two fields on the same entity row
+@Query("SELECT i FROM InventoryEntity i WHERE i.qtyInStock <= i.reorderLevel")
+List<InventoryEntity> findLowStock();
+```
+
+#### 3. Native SQL (`nativeQuery = true`)
+
+Required when the query uses database-specific features unavailable in JPQL.
+
+```java
+// ProductRepository — PostgreSQL full-text search via GIN index
+// JPQL has no to_tsvector / plainto_tsquery / @@ syntax.
+// countQuery is mandatory; Spring Data cannot auto-derive a count from SELECT * native queries.
+@Query(value = """
+    SELECT p.* FROM products p
+     WHERE (:query IS NULL
+            OR to_tsvector('english', p.name || ' ' || COALESCE(p.description, ''))
+               @@ plainto_tsquery('english', :query))
+       AND (:categoryId IS NULL OR p.category_id = :categoryId)
+    """,
+    countQuery = "SELECT COUNT(*) FROM products p WHERE ...",
+    nativeQuery = true)
+Page<ProductEntity> searchFts(..., Pageable pageable);
+
+// InventoryRepository — atomic conditional decrement; returns rows affected
+// Returns 0 when qty_in_stock < qty (signals insufficient stock to the caller).
+// clearAutomatically = true flushes the persistence context so subsequent reads
+// in the same transaction see the updated value.
+// last_updated = NOW() is set in SQL because @PreUpdate does not fire for native DML.
+@Modifying(clearAutomatically = true)
+@Query(value = """
+    UPDATE inventory
+       SET qty_in_stock = qty_in_stock - :qty, last_updated = NOW()
+     WHERE product_id = :productId AND qty_in_stock >= :qty
+    """, nativeQuery = true)
+int deductStock(@Param("productId") Long productId, @Param("qty") int qty);
+
+// OrderRepository — revenue sum with COALESCE to handle an empty result set
+@Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE payment_status = 'paid'",
+       nativeQuery = true)
+BigDecimal sumPaidRevenue();
+```
+
+### Repository reference
+
+| Repository | Derived | JPQL | Native |
+|---|---|---|---|
+| `UserRepository` | `existsByEmail`, `existsByUsername` | `search` | — |
+| `CategoryRepository` | `existsBySlug` | `search` | — |
+| `ProductRepository` | `existsBySlug` | `findByIdWithAssociations` (JOIN FETCH) | `searchFts` |
+| `InventoryRepository` | `findByProduct_ProductId` | `findLowStock` | `deductStock` |
+| `OrderRepository` | — | `search` (JOIN FETCH), `getStatsByStatus` | `sumPaidRevenue` |
+| `OrderItemRepository` | `findByOrder_OrderId` | — | — |
+| `PaymentRepository` | — | `search` | — |
+| `CartRepository` | `findByUser_UserIdAndActiveTrue` | — | — |
+| `CartItemRepository` | `findByCart_CartId`, `findByCart_CartIdAndProduct_ProductId` | — | — |
+| `ReviewRepository` | `existsByProduct_ProductIdAndUser_UserId` | `search` | — |
+| `ActivityLogRepository` | — | `search` | — |
+
+---
+
+## Transaction Management
+
+### Default boundary
+
+Every service implementation class is annotated `@Transactional(readOnly = true)`. This applies
+to all methods by default:
+
+- `readOnly = true` tells Hibernate to skip dirty-checking at flush time, reducing overhead on read paths.
+- Write methods override this with a plain `@Transactional` (inherits `readOnly = false`).
+
+### Propagation
+
+| Propagation | Where used | Effect |
+|---|---|---|
+| `REQUIRED` *(default)* | All write methods | Joins an existing transaction; opens a new one if none exists. All writes in the call chain share the same commit/rollback boundary. |
+| `REQUIRES_NEW` | `ActivityLogServiceImpl.create()` | Suspends the caller's transaction and commits the activity log in its own independent transaction. **The log entry persists even when the calling operation rolls back** — audit records must survive the failure they describe. |
+
+### Isolation
+
+| Isolation | Where used | Why |
+|---|---|---|
+| `READ_COMMITTED` | `OrderServiceImpl.create/updateStatus`, `PaymentServiceImpl.create/updateStatus` | Prevents reading uncommitted data from concurrent transactions; appropriate for most write operations. |
+| `REPEATABLE_READ` | `OrderServiceImpl.getStats()` | Guarantees that multiple reads of the same rows within the stats query return consistent values; prevents the aggregate from seeing partial writes from concurrent inserts. |
+
+### Rollback
+
+Spring's default behaviour rolls back on `RuntimeException` and its subclasses. Write methods
+that call external systems or multiple repositories use `rollbackFor = Exception.class` to extend
+rollback to checked exceptions as well:
+
+```java
+@Transactional(propagation = Propagation.REQUIRED,
+               isolation   = Isolation.READ_COMMITTED,
+               rollbackFor = Exception.class)
+public OrderEntity create(OrderRequest request) { ... }
+```
+
+### Atomic stock deduction
+
+Placing an order deducts stock across all line items in a single transaction. If any item has
+insufficient stock the entire order — including the order header, all previously saved line items,
+and all prior stock deductions — rolls back atomically:
+
+```
+POST /api/orders  [items: product 1 qty 2, product 2 qty 5]
+│
+├─ deductStock(productId=1, qty=2)  → returns 1  ✓
+├─ deductStock(productId=2, qty=5)  → returns 0  ✗ (qty_in_stock < 5)
+│
+└─ throws ResponseStatusException(CONFLICT)
+   → Spring rolls back entire transaction
+   → product 1 stock restored, order not persisted
+```
+
+### Payment ↔ order consistency
+
+`PaymentServiceImpl.updateStatus()` updates both the `payments` row and the linked order's
+`payment_status` column in the same transaction. If either write fails, both roll back — the two
+tables never fall out of sync.
+
+```
+PATCH /api/payments/{id}/status?status=completed
+│
+├─ payment.status    = "completed"
+├─ payment.paidAt    = now()
+└─ order.paymentStatus = "paid"       ← same transaction, same commit
+```
+
+---
+
+## Caching
+
+The application uses **Caffeine** as the in-process cache, auto-configured by Spring Boot's
+`CaffeineCacheManager`.
+
+### Configuration
+
+```yaml
+# application.yml (global)
+spring:
+  cache:
+    type: caffeine
+    cache-names: products,categories,users
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=10m,recordStats
+```
+
+| Parameter | Value | Meaning |
+|---|---|---|
+| `type: caffeine` | — | Selects Caffeine over the default `ConcurrentMapCache` (which has no TTL) |
+| `cache-names` | `products,categories,users` | Caches created at startup; Spring logs a warning for any unknown cache name |
+| `maximumSize=500` | Per cache | Evicts least-recently-used entries when the limit is reached |
+| `expireAfterWrite=10m` | Per cache | Entry expires 10 minutes after it was written, regardless of read frequency |
+| `recordStats` | — | Enables hit/miss tracking; required for the `/api/monitoring/cache-stats` endpoint |
+
+The `test` profile uses a smaller, shorter-lived spec to keep unit tests fast:
+
+```yaml
+spring:
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=1m,recordStats
+```
+
+### Cache strategy per service
+
+| Service | Cached method | Cache name | Eviction trigger |
+|---|---|---|---|
+| `ProductServiceImpl` | `findById(id)` | `products` | `create` (allEntries), `update(id)`, `delete(id)` |
+| `CategoryServiceImpl` | `findById(id)` | `categories` | `create` (allEntries), `update(id)`, `delete(id)` |
+| `UserServiceImpl` | `findById(id)` | `users` | `create` (allEntries), `update(id)`, `delete(id)` |
+
+`allEntries = true` on `create` evicts the entire cache for that entity type because a new entity
+may appear in cached list results that reference other cached entries.
+
+### Verifying cache behaviour
+
+**Check for a cache hit** — call the same GET endpoint twice and watch the Hibernate SQL log
+(enabled in the `dev` profile):
+
+```bash
+# First call — cache miss; Hibernate SELECT visible in logs
+GET /api/products/1
+
+# Second call — cache hit; no Hibernate SELECT in logs
+GET /api/products/1
+```
+
+**Check cache statistics** — the monitoring endpoint reports live hit/miss counts:
+
+```bash
+GET /api/monitoring/cache-stats
+```
+
+```json
+{
+  "status": "success",
+  "data": {
+    "products": {
+      "hitCount":      15,
+      "missCount":     3,
+      "hitRate":       0.833,
+      "evictionCount": 0,
+      "estimatedSize": 3
+    },
+    "categories": { ... },
+    "users":      { ... }
+  }
+}
+```
+
+**Verify eviction** — update a product, then fetch it again; the Hibernate log must show a fresh
+SELECT (the cached entry was evicted by the update):
+
+```bash
+PUT  /api/products/1   # evicts key 1 from products cache
+GET  /api/products/1   # cache miss — Hibernate SELECT appears in logs
 ```
 
 ---
@@ -534,7 +834,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=test
 | `spring-boot-starter-validation` | Bean Validation (Jakarta) |
 | `spring-boot-starter-graphql` | Spring GraphQL + graphql-java |
 | `spring-boot-starter-aop` | AspectJ-based AOP |
+| `spring-boot-starter-cache` | Spring Cache abstraction (`@Cacheable`, `@CacheEvict`, `@EnableCaching`) |
 | `spring-boot-starter-actuator` | Health and metrics endpoints |
 | `spring-boot-starter-test` | JUnit 5, Mockito, AssertJ *(test scope)* |
 | `org.postgresql:postgresql` | PostgreSQL JDBC driver |
+| `com.github.ben-manes.caffeine:caffeine` | High-performance in-process cache with TTL, max-size, and hit/miss stats |
 | `springdoc-openapi-starter-webmvc-ui` | Swagger UI + OpenAPI 3 docs |
