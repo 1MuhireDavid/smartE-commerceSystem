@@ -1,10 +1,13 @@
 package org.ecommerce.api.controller;
 
+import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.aspect.MethodMetrics;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,9 +29,12 @@ import java.util.Map;
 public class MonitoringController {
 
     private final PerformanceMonitoringAspect monitoringAspect;
+    private final CacheManager               cacheManager;
 
-    public MonitoringController(PerformanceMonitoringAspect monitoringAspect) {
+    public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
+                                CacheManager cacheManager) {
         this.monitoringAspect = monitoringAspect;
+        this.cacheManager     = cacheManager;
     }
 
     /**
@@ -73,6 +79,34 @@ public class MonitoringController {
                 org.ecommerce.api.dto.ApiResponse.success("Metrics retrieved", summary));
     }
 
+    @Operation(
+        summary     = "Get cache statistics",
+        description = "Returns hit/miss counts, hit rate, eviction count, and estimated size "
+                    + "for each Caffeine cache (products, categories, users). "
+                    + "Requires recordStats in the Caffeine spec (already set in application.yml)."
+    )
+    @ApiResponse(responseCode = "200", description = "Cache statistics retrieved successfully")
+    @GetMapping("/cache-stats")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, CacheStatsSummary>>> cacheStats() {
+        Map<String, CacheStatsSummary> result = new LinkedHashMap<>();
+
+        cacheManager.getCacheNames().forEach(name -> {
+            org.springframework.cache.Cache cache = cacheManager.getCache(name);
+            if (cache instanceof CaffeineCache caffeineCache) {
+                CacheStats stats = caffeineCache.getNativeCache().stats();
+                result.put(name, new CacheStatsSummary(
+                        stats.hitCount(),
+                        stats.missCount(),
+                        stats.hitRate(),
+                        stats.evictionCount(),
+                        caffeineCache.getNativeCache().estimatedSize()));
+            }
+        });
+
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success("Cache statistics retrieved", result));
+    }
+
     // ── Serialisable projection of MethodMetrics ──────────────────────────────
 
     /**
@@ -100,5 +134,31 @@ public class MonitoringController {
         public long   getSlowInvocations() { return slowInvocations; }
         public double getAvgTimeMs()       { return avgTimeMs; }
         public long   getLastTimeMs()      { return lastTimeMs; }
+    }
+
+    // ── Cache stats projection ─────────────────────────────────────────────────
+
+    public static final class CacheStatsSummary {
+
+        private final long   hitCount;
+        private final long   missCount;
+        private final double hitRate;
+        private final long   evictionCount;
+        private final long   estimatedSize;
+
+        CacheStatsSummary(long hitCount, long missCount, double hitRate,
+                          long evictionCount, long estimatedSize) {
+            this.hitCount      = hitCount;
+            this.missCount     = missCount;
+            this.hitRate       = Math.round(hitRate * 1000.0) / 1000.0;
+            this.evictionCount = evictionCount;
+            this.estimatedSize = estimatedSize;
+        }
+
+        public long   getHitCount()      { return hitCount; }
+        public long   getMissCount()     { return missCount; }
+        public double getHitRate()       { return hitRate; }
+        public long   getEvictionCount() { return evictionCount; }
+        public long   getEstimatedSize() { return estimatedSize; }
     }
 }

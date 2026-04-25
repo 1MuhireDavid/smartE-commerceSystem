@@ -5,6 +5,8 @@ import org.ecommerce.api.dto.request.UserRequest;
 import org.ecommerce.api.entity.UserEntity;
 import org.ecommerce.api.repository.UserRepository;
 import org.ecommerce.api.service.UserService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#id")
     public UserEntity findById(long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -39,6 +42,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserEntity create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -63,6 +67,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public UserEntity update(long id, UserRequest request) {
         UserEntity user = findById(id);
 
@@ -92,6 +97,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public void delete(long id) {
         UserEntity user = findById(id);
         userRepository.delete(user);

@@ -64,10 +64,17 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
-        <!-- Caching — uses ConcurrentMapCacheManager by default (in-memory, no extra infrastructure) -->
+        <!-- Caching abstraction -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Caffeine: high-performance in-memory cache with TTL, max-size, and hit/miss stats.
+             Spring Boot auto-configures CaffeineCacheManager when this is on the classpath. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
         </dependency>
 
         <!-- 🧪 Testing -->

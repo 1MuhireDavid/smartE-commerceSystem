@@ -3,6 +3,12 @@ spring:
     active: dev
   application:
     name: smart-ecommerce-api
+  cache:
+    type: caffeine
+    cache-names: products,categories,users
+    caffeine:
+      # recordStats enables hit/miss tracking exposed via GET /api/monitoring/cache-stats
+      spec: maximumSize=500,expireAfterWrite=10m,recordStats
   jackson:
     time-zone: UTC
     serialization:
@@ -65,6 +71,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=1m,recordStats
 
 logging:
   level:
