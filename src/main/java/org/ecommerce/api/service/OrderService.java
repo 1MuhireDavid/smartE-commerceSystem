@@ -1,5 +1,6 @@
 package org.ecommerce.api.service;
 
+import org.ecommerce.api.dto.OrderStatsDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.OrderRequest;
 import org.ecommerce.api.entity.OrderEntity;
@@ -19,4 +20,6 @@ public interface OrderService {
     OrderEntity create(OrderRequest request);
 
     OrderEntity updateStatus(long id, String status);
+
+    OrderStatsDto getStats();
 }

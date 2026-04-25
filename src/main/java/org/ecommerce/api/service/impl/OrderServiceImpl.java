@@ -1,5 +1,6 @@
 package org.ecommerce.api.service.impl;
 
+import org.ecommerce.api.dto.OrderStatsDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.OrderItemRequest;
 import org.ecommerce.api.dto.request.OrderRequest;
@@ -16,6 +17,8 @@ import org.ecommerce.api.service.OrderService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -68,8 +71,16 @@ public class OrderServiceImpl implements OrderService {
         return orderItemRepository.findByOrder_OrderId(orderId);
     }
 
+    // Propagation.REQUIRED: joins the caller's transaction if one exists; starts a new one
+    // otherwise. Isolation.READ_COMMITTED: each read sees only committed data from other
+    // transactions, preventing dirty reads during stock checks and order writes.
+    // rollbackFor = Exception.class: guarantees rollback on any exception — including checked
+    // ones — so no partial order or inventory state is ever persisted on failure.
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation   = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class)
     public OrderEntity create(OrderRequest request) {
         UserEntity user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -79,7 +90,6 @@ public class OrderServiceImpl implements OrderService {
                 ? request.getDiscountAmount()
                 : BigDecimal.ZERO;
 
-        // build line items and calculate subtotal
         List<OrderItemEntity> lineItems = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -89,7 +99,8 @@ public class OrderServiceImpl implements OrderService {
                             HttpStatus.NOT_FOUND, "Product not found with id: " + line.getProductId()));
 
             // Atomic check-and-decrement: returns 0 when qty_in_stock < requested quantity.
-            // A 0 return triggers rollback of the entire transaction, so no partial order is saved.
+            // Throwing here rolls back the entire transaction — no partial order or inventory
+            // deduction survives.
             int updated = inventoryRepository.deductStock(line.getProductId(), line.getQuantity());
             if (updated == 0) {
                 throw new ResponseStatusException(
@@ -98,8 +109,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
             BigDecimal unitPrice = product.getEffectivePrice();
-            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(line.getQuantity()));
-            subtotal = subtotal.add(lineTotal);
+            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(line.getQuantity())));
 
             OrderItemEntity item = new OrderItemEntity();
             item.setProduct(product);
@@ -131,15 +141,36 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation   = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class)
     public OrderEntity updateStatus(long id, String status) {
         if (!VALID_STATUSES.contains(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid status '" + status + "'. Allowed: " + VALID_STATUSES);
         }
-
         OrderEntity order = findById(id);
         order.setStatus(status);
         return orderRepository.save(order);
+    }
+
+    // REPEATABLE_READ ensures that the two aggregate queries (getStatsByStatus and
+    // sumPaidRevenue) see a consistent snapshot of the orders table — concurrent inserts
+    // between the two reads cannot skew the totals reported to the caller.
+    @Override
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public OrderStatsDto getStats() {
+        List<Object[]> rows = orderRepository.getStatsByStatus();
+        BigDecimal paidRevenue = orderRepository.sumPaidRevenue();
+
+        List<OrderStatsDto.StatusCount> byStatus = rows.stream()
+                .map(r -> new OrderStatsDto.StatusCount(
+                        (String) r[0],
+                        ((Number) r[1]).longValue(),
+                        r[2] != null ? (BigDecimal) r[2] : BigDecimal.ZERO))
+                .toList();
+
+        return new OrderStatsDto(byStatus, paidRevenue);
     }
 }

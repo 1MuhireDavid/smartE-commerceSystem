@@ -9,6 +9,7 @@ import org.ecommerce.api.service.ActivityLogService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,8 +31,11 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         return PagedResponse.of(activityLogRepository.search(userId, eventType, pageable));
     }
 
+    // REQUIRES_NEW suspends the caller's transaction and commits this write in its own
+    // independent transaction. Activity logs persist even when the calling operation
+    // rolls back — audit records should survive the failure they describe.
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ActivityLogEntity create(ActivityLogRequest request) {
         ActivityLogEntity log = new ActivityLogEntity();
         log.setEventType(request.getEventType());

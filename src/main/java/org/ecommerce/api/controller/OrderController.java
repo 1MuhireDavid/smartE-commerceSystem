@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.OrderStatsDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.OrderRequest;
 import org.ecommerce.api.entity.OrderEntity;
@@ -72,6 +73,15 @@ public class OrderController {
         OrderEntity created = orderService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Order placed successfully", created));
+    }
+
+    @Operation(
+            summary     = "Order statistics",
+            description = "Aggregate order counts and revenue grouped by status, plus total confirmed (paid) revenue.")
+    @GetMapping("/stats")
+    public ResponseEntity<ApiResponse<OrderStatsDto>> getStats() {
+        return ResponseEntity.ok(
+                ApiResponse.success("Order statistics retrieved", orderService.getStats()));
     }
 
     @Operation(summary = "Update order status",

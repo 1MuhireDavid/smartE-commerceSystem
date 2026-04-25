@@ -10,6 +10,8 @@ import org.ecommerce.api.service.PaymentService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -45,7 +47,10 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation   = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class)
     public PaymentEntity create(PaymentRequest request) {
         OrderEntity order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -59,8 +64,14 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository.save(payment);
     }
 
+    // Both the payment row and the linked order's paymentStatus are updated in the same
+    // transaction. If either write fails the whole operation rolls back, so the two tables
+    // never fall out of sync (e.g. payment = "completed" but order still shows "unpaid").
     @Override
-    @Transactional
+    @Transactional(
+            propagation = Propagation.REQUIRED,
+            isolation   = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class)
     public PaymentEntity updateStatus(long id, String status) {
         if (!VALID_STATUSES.contains(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -69,9 +80,22 @@ public class PaymentServiceImpl implements PaymentService {
 
         PaymentEntity payment = findById(id);
         payment.setStatus(status);
+
         if ("completed".equals(status)) {
             payment.setPaidAt(LocalDateTime.now());
+            syncOrderPaymentStatus(payment.getOrderId(), "paid");
+        } else if ("refunded".equals(status)) {
+            syncOrderPaymentStatus(payment.getOrderId(), "refunded");
         }
+
         return paymentRepository.save(payment);
+    }
+
+    private void syncOrderPaymentStatus(Long orderId, String paymentStatus) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Order not found with id: " + orderId));
+        order.setPaymentStatus(paymentStatus);
+        orderRepository.save(order);
     }
 }
