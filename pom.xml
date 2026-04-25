@@ -64,6 +64,12 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- Caching — uses ConcurrentMapCacheManager by default (in-memory, no extra infrastructure) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
         <!-- 🧪 Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

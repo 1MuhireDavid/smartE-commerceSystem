@@ -7,6 +7,7 @@ import org.ecommerce.api.entity.OrderEntity;
 import org.ecommerce.api.entity.OrderItemEntity;
 import org.ecommerce.api.entity.ProductEntity;
 import org.ecommerce.api.entity.UserEntity;
+import org.ecommerce.api.repository.InventoryRepository;
 import org.ecommerce.api.repository.OrderItemRepository;
 import org.ecommerce.api.repository.OrderRepository;
 import org.ecommerce.api.repository.ProductRepository;
@@ -35,15 +36,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final UserRepository      userRepository;
     private final ProductRepository   productRepository;
+    private final InventoryRepository inventoryRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
                             UserRepository userRepository,
-                            ProductRepository productRepository) {
+                            ProductRepository productRepository,
+                            InventoryRepository inventoryRepository) {
         this.orderRepository     = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository      = userRepository;
         this.productRepository   = productRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     @Override
@@ -65,7 +69,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public OrderEntity create(OrderRequest request) {
         UserEntity user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -83,6 +87,15 @@ public class OrderServiceImpl implements OrderService {
             ProductEntity product = productRepository.findById(line.getProductId())
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Product not found with id: " + line.getProductId()));
+
+            // Atomic check-and-decrement: returns 0 when qty_in_stock < requested quantity.
+            // A 0 return triggers rollback of the entire transaction, so no partial order is saved.
+            int updated = inventoryRepository.deductStock(line.getProductId(), line.getQuantity());
+            if (updated == 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Insufficient stock for product id: " + line.getProductId());
+            }
 
             BigDecimal unitPrice = product.getEffectivePrice();
             BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(line.getQuantity()));

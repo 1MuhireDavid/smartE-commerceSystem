@@ -5,6 +5,8 @@ import org.ecommerce.api.dto.request.CategoryRequest;
 import org.ecommerce.api.entity.CategoryEntity;
 import org.ecommerce.api.repository.CategoryRepository;
 import org.ecommerce.api.service.CategoryService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(value = "categories", key = "#id")
     public CategoryEntity findById(int id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -38,6 +41,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryEntity create(CategoryRequest request) {
         if (categoryRepository.existsBySlug(request.getSlug())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -55,6 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", key = "#id")
     public CategoryEntity update(int id, CategoryRequest request) {
         CategoryEntity category = findById(id);
 
@@ -74,6 +79,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "categories", key = "#id")
     public void delete(int id) {
         CategoryEntity category = findById(id);
         categoryRepository.delete(category);

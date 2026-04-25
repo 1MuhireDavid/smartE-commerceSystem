@@ -10,6 +10,8 @@ import org.ecommerce.api.repository.CategoryRepository;
 import org.ecommerce.api.repository.ProductRepository;
 import org.ecommerce.api.repository.UserRepository;
 import org.ecommerce.api.service.ProductService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -36,13 +38,16 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public PagedResponse<ProductEntity> findAll(
             String keyword, Integer categoryId, String status, Long sellerId, Pageable pageable) {
-        String pattern = keyword != null ? ("%" + keyword.toLowerCase() + "%") : null;
+        // Uses native SQL full-text search (GIN index on name + description) when a keyword is
+        // present. plainto_tsquery handles tokenisation, so keyword is passed raw (not as a LIKE
+        // pattern). The IS NULL guard in the query handles the no-keyword case.
         Page<ProductEntity> page =
-                productRepository.search(pattern, categoryId, status, sellerId, pageable);
+                productRepository.searchFts(keyword, categoryId, status, sellerId, pageable);
         return PagedResponse.of(page);
     }
 
     @Override
+    @Cacheable(value = "products", key = "#id")
     public ProductEntity findById(long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -51,6 +56,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public ProductEntity create(ProductRequest request) {
         if (productRepository.existsBySlug(request.getSlug())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -71,6 +77,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public ProductEntity update(long id, ProductRequest request) {
         ProductEntity product = findById(id);
 
@@ -92,6 +99,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public void delete(long id) {
         ProductEntity product = findById(id);
         productRepository.delete(product);
