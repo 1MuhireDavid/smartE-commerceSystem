@@ -28,14 +28,22 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     /**
      * Filtered + paginated product search.
-     * Supports: keyword (name ILIKE), categoryId, status, sellerId.
-     * Sorting is handled by the Pageable sort parameter (e.g. basePrice,asc).
+     * The countQuery is required because JOIN FETCH prevents Spring Data from
+     * deriving a correct count query automatically.
      */
-    @Query("""
+    @Query(value = """
         SELECT p FROM ProductEntity p
         LEFT JOIN FETCH p.category
         LEFT JOIN FETCH p.seller
         LEFT JOIN FETCH p.inventory
+        WHERE (:pattern    IS NULL
+               OR LOWER(p.name) LIKE :pattern)
+          AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
+          AND (:status     IS NULL OR p.status = :status)
+          AND (:sellerId   IS NULL OR p.seller.userId = :sellerId)
+        """,
+        countQuery = """
+        SELECT COUNT(p) FROM ProductEntity p
         WHERE (:pattern    IS NULL
                OR LOWER(p.name) LIKE :pattern)
           AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
@@ -48,21 +56,4 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             @Param("status")     String status,
             @Param("sellerId")   Long sellerId,
             Pageable pageable);
-
-    /**
-     * Count query required when using JOIN FETCH with pagination.
-     */
-    @Query("""
-        SELECT COUNT(p) FROM ProductEntity p
-        WHERE (:pattern    IS NULL
-               OR LOWER(p.name) LIKE :pattern)
-          AND (:categoryId IS NULL OR p.category.categoryId = :categoryId)
-          AND (:status     IS NULL OR p.status = :status)
-          AND (:sellerId   IS NULL OR p.seller.userId = :sellerId)
-        """)
-    long countSearch(
-            @Param("pattern")    String pattern,
-            @Param("categoryId") Integer categoryId,
-            @Param("status")     String status,
-            @Param("sellerId")   Long sellerId);
 }
