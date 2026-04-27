@@ -25,6 +25,12 @@ spring:
 server:
   port: 8080
 
+# ── JWT ───────────────────────────────────────────────────────────────────────
+# Override JWT_SECRET with a strong base64-encoded key in production
+jwt:
+  secret: ${JWT_SECRET:dGhpcy1pcy1hLXZlcnktc2VjcmV0LWtleS1mb3ItZGV2LW9ubHk=}
+  expiration: ${JWT_EXPIRATION:86400000}   # 24 h in milliseconds
+
 # ── AOP monitoring ────────────────────────────────────────────────────────────
 monitoring:
   # Service methods that take longer than this threshold are logged as WARN

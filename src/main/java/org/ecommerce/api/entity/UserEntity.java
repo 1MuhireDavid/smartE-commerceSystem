@@ -1,11 +1,18 @@
 package org.ecommerce.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,33 +58,72 @@ public class UserEntity {
 
     public UserEntity() {}
 
-    public Long getUserId()                        { return userId; }
-    public void setUserId(Long userId)             { this.userId = userId; }
+    // ── UserDetails ───────────────────────────────────────────────────────────
 
-    public String getUsername()                    { return username; }
-    public void setUsername(String username)       { this.username = username; }
+    @Override
+    @JsonIgnore
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+    }
 
-    public String getEmail()                       { return email; }
-    public void setEmail(String email)             { this.email = email; }
+    /** Returns the BCrypt-hashed password; excluded from JSON responses. */
+    @Override
+    @JsonIgnore
+    public String getPassword() {
+        return passwordHash;
+    }
 
-    public String getPasswordHash()                { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    /** Returns the username field — used as the JWT subject. */
+    @Override
+    public String getUsername() {
+        return username;
+    }
 
-    public String getFullName()                    { return fullName; }
-    public void setFullName(String fullName)       { this.fullName = fullName; }
+    @Override
+    @JsonIgnore
+    public boolean isAccountNonExpired() { return true; }
 
-    public String getPhone()                       { return phone; }
-    public void setPhone(String phone)             { this.phone = phone; }
+    @Override
+    @JsonIgnore
+    public boolean isAccountNonLocked() { return true; }
 
-    public String getRole()                        { return role; }
-    public void setRole(String role)               { this.role = role; }
+    @Override
+    @JsonIgnore
+    public boolean isCredentialsNonExpired() { return true; }
 
-    public boolean isActive()                      { return active; }
-    public void setActive(boolean active)          { this.active = active; }
+    @Override
+    @JsonIgnore
+    public boolean isEnabled() { return active; }
 
-    public LocalDateTime getCreatedAt()            { return createdAt; }
-    public void setCreatedAt(LocalDateTime t)      { this.createdAt = t; }
+    // ── Getters / Setters ─────────────────────────────────────────────────────
 
-    public LocalDateTime getUpdatedAt()            { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime t)      { this.updatedAt = t; }
+    public Long getUserId()                            { return userId; }
+    public void setUserId(Long userId)                 { this.userId = userId; }
+
+    public void setUsername(String username)           { this.username = username; }
+
+    public String getEmail()                           { return email; }
+    public void setEmail(String email)                 { this.email = email; }
+
+    @JsonIgnore
+    public String getPasswordHash()                    { return passwordHash; }
+    public void setPasswordHash(String passwordHash)   { this.passwordHash = passwordHash; }
+
+    public String getFullName()                        { return fullName; }
+    public void setFullName(String fullName)           { this.fullName = fullName; }
+
+    public String getPhone()                           { return phone; }
+    public void setPhone(String phone)                 { this.phone = phone; }
+
+    public String getRole()                            { return role; }
+    public void setRole(String role)                   { this.role = role; }
+
+    public boolean isActive()                          { return active; }
+    public void setActive(boolean active)              { this.active = active; }
+
+    public LocalDateTime getCreatedAt()                { return createdAt; }
+    public void setCreatedAt(LocalDateTime t)          { this.createdAt = t; }
+
+    public LocalDateTime getUpdatedAt()                { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime t)          { this.updatedAt = t; }
 }
