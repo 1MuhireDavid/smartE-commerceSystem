@@ -1,5 +1,7 @@
 package org.ecommerce.api.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(7);
+
         try {
             String username = jwtService.extractUsername(token);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -51,11 +54,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             }
-        } catch (Exception ignored) {
-            // Invalid or expired token — let the request proceed unauthenticated;
-            // Spring Security will reject it if the endpoint requires auth.
+        } catch (ExpiredJwtException ex) {
+            // Token is structurally valid but past its expiry — explicit 401 (US 2.1)
+            writeError(response, "Token has expired — please log in again");
+            return;
+        } catch (JwtException ex) {
+            // Signature mismatch, malformed header/payload — tampered token (US 2.1)
+            writeError(response, "Invalid token — signature verification failed");
+            return;
         }
 
         chain.doFilter(request, response);
+    }
+
+    private void writeError(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(
+                "{\"status\":\"error\",\"message\":\"" + message + "\",\"data\":null}");
     }
 }

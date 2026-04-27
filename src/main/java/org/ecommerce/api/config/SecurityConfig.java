@@ -1,5 +1,7 @@
 package org.ecommerce.api.config;
 
+import org.ecommerce.api.security.JwtAccessDeniedHandler;
+import org.ecommerce.api.security.JwtAuthEntryPoint;
 import org.ecommerce.api.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,12 +56,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthFilter jwtAuthFilter,
-                                                   AuthenticationProvider authProvider) throws Exception {
+                                                   AuthenticationProvider authProvider,
+                                                   JwtAuthEntryPoint authEntryPoint,
+                                                   JwtAccessDeniedHandler accessDeniedHandler) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authProvider)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(auth -> auth
 
                 // ── Public ────────────────────────────────────────────────────

@@ -11,15 +11,18 @@ public class AuthResponse {
     private String email;
     private String fullName;
     private String role;
+    /** Seconds until the token expires — convenient for Postman / frontend. */
+    private long expiresIn;
 
-    public static AuthResponse from(UserEntity user, String token) {
+    public static AuthResponse from(UserEntity user, String token, long expirationMs) {
         AuthResponse r = new AuthResponse();
-        r.token    = token;
-        r.userId   = user.getUserId();
-        r.username = user.getUsername();
-        r.email    = user.getEmail();
-        r.fullName = user.getFullName();
-        r.role     = user.getRole();
+        r.token     = token;
+        r.userId    = user.getUserId();
+        r.username  = user.getUsername();
+        r.email     = user.getEmail();
+        r.fullName  = user.getFullName();
+        r.role      = user.getRole();
+        r.expiresIn = expirationMs / 1000;
         return r;
     }
 
@@ -30,4 +33,5 @@ public class AuthResponse {
     public String getEmail()     { return email; }
     public String getFullName()  { return fullName; }
     public String getRole()      { return role; }
+    public long getExpiresIn()   { return expiresIn; }
 }

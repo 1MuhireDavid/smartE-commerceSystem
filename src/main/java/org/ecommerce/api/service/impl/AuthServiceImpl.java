@@ -28,9 +28,9 @@ public class AuthServiceImpl implements AuthService {
                            BCryptPasswordEncoder passwordEncoder,
                            JwtService jwtService,
                            AuthenticationManager authenticationManager) {
-        this.userRepository      = userRepository;
-        this.passwordEncoder     = passwordEncoder;
-        this.jwtService          = jwtService;
+        this.userRepository        = userRepository;
+        this.passwordEncoder       = passwordEncoder;
+        this.jwtService            = jwtService;
         this.authenticationManager = authenticationManager;
     }
 
@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
         user.setActive(true);
 
         user = userRepository.save(user);
-        return AuthResponse.from(user, jwtService.generateToken(user));
+        return AuthResponse.from(user, jwtService.generateToken(user), jwtService.getExpiration());
     }
 
     @Override
@@ -74,6 +74,6 @@ public class AuthServiceImpl implements AuthService {
                 .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        return AuthResponse.from(user, jwtService.generateToken(user));
+        return AuthResponse.from(user, jwtService.generateToken(user), jwtService.getExpiration());
     }
 }
