@@ -9,6 +9,7 @@ import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +25,7 @@ import java.util.Map;
  * read-through to the aspect's in-memory metrics map.
  */
 @Tag(name = "Monitoring", description = "Live AOP-collected service performance metrics")
+@PreAuthorize("hasRole('ADMIN')")
 @RestController
 @RequestMapping("/api/monitoring")
 public class MonitoringController {

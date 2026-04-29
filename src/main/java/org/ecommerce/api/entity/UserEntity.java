@@ -25,7 +25,8 @@ public class UserEntity implements UserDetails {
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    // Nullable: OAuth2 users (Google login) authenticate via their provider and have no local password.
+    @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 100)
@@ -36,6 +37,12 @@ public class UserEntity implements UserDetails {
 
     @Column(name = "role", nullable = false, length = 10)
     private String role;
+
+    @Column(name = "provider", nullable = false, length = 20)
+    private String provider = "local";
+
+    @Column(name = "provider_id", length = 255)
+    private String providerId;
 
     @Column(name = "is_active", nullable = false)
     private boolean active;
@@ -117,6 +124,12 @@ public class UserEntity implements UserDetails {
 
     public String getRole()                            { return role; }
     public void setRole(String role)                   { this.role = role; }
+
+    public String getProvider()                        { return provider; }
+    public void setProvider(String provider)           { this.provider = provider; }
+
+    public String getProviderId()                      { return providerId; }
+    public void setProviderId(String providerId)       { this.providerId = providerId; }
 
     public boolean isActive()                          { return active; }
     public void setActive(boolean active)              { this.active = active; }

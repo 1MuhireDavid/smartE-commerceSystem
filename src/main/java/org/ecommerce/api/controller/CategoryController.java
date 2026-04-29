@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Categories", description = "Administrator endpoints for product category management")
@@ -87,6 +88,7 @@ public class CategoryController {
         @ApiResponse(responseCode = "409", description = "Slug already in use",
                      content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
     })
+    @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PostMapping
     public ResponseEntity<org.ecommerce.api.dto.ApiResponse<CategoryEntity>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -107,6 +109,7 @@ public class CategoryController {
         @ApiResponse(responseCode = "409", description = "Slug already in use",
                      content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
     })
+    @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<org.ecommerce.api.dto.ApiResponse<CategoryEntity>> update(
             @Parameter(description = "Category ID", required = true, example = "1")
@@ -125,6 +128,7 @@ public class CategoryController {
         @ApiResponse(responseCode = "404", description = "Category not found",
                      content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
     })
+    @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Void>> delete(
             @Parameter(description = "Category ID", required = true, example = "1")

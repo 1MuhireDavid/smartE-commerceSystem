@@ -24,12 +24,17 @@ CREATE TABLE users (
     user_id       BIGSERIAL    PRIMARY KEY,
     username      VARCHAR(50)  NOT NULL UNIQUE,
     email         VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    -- Nullable: OAuth2 users (Google login) have no local password
+    password_hash VARCHAR(255),
     full_name     VARCHAR(100) NOT NULL,
     phone         VARCHAR(20),
     address       VARCHAR(300),
     role          VARCHAR(10)  NOT NULL DEFAULT 'customer'
                                CHECK (role IN ('customer','seller','admin')),
+    -- 'local' for email/password accounts, 'google' for OAuth2 accounts
+    provider      VARCHAR(20)  NOT NULL DEFAULT 'local',
+    -- Google's immutable 'sub' claim; NULL for local accounts
+    provider_id   VARCHAR(255),
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -37,6 +42,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email    ON users (email);
 CREATE INDEX idx_users_username ON users (username);
 CREATE INDEX idx_users_role     ON users (role);
+CREATE INDEX idx_users_provider ON users (provider, provider_id);
 
 -- ─── categories ───────────────────────────────────────────────────────────────
 CREATE TABLE categories (

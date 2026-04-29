@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.entity.InventoryEntity;
 import org.ecommerce.api.service.InventoryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @Tag(name = "Inventory", description = "Inventory monitoring endpoints")
+@PreAuthorize("hasAnyRole('SELLER','ADMIN')")
 @RestController
 @RequestMapping("/api/inventory")
 public class InventoryController {

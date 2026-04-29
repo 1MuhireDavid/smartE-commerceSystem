@@ -13,9 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Activity Logs", description = "Append-only user event log")
+@PreAuthorize("hasRole('ADMIN')")
 @RestController
 @RequestMapping("/api/activity-logs")
 public class ActivityLogController {

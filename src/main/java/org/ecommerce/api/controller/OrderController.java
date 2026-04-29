@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -86,6 +87,7 @@ public class OrderController {
 
     @Operation(summary = "Update order status",
                description = "Allowed values: pending → processing → completed | cancelled")
+    @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<OrderEntity>> updateStatus(
             @Parameter(description = "Order ID", example = "1") @PathVariable long id,

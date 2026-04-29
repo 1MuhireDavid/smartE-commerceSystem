@@ -20,6 +20,7 @@ A Spring Boot REST + GraphQL API for an e-commerce platform, backed by PostgreSQ
 12. [REST vs GraphQL — Trade-offs](#rest-vs-graphql--trade-offs)
 13. [Environment Profiles](#environment-profiles)
 14. [Dependencies](#dependencies)
+15. [Security Architecture](#security-architecture)
 
 ---
 
@@ -840,3 +841,141 @@ mvn spring-boot:run -Dspring-boot.run.profiles=test
 | `org.postgresql:postgresql` | PostgreSQL JDBC driver |
 | `com.github.ben-manes.caffeine:caffeine` | High-performance in-process cache with TTL, max-size, and hit/miss stats |
 | `springdoc-openapi-starter-webmvc-ui` | Swagger UI + OpenAPI 3 docs |
+| `spring-boot-starter-oauth2-client` | Google OAuth2 social login |
+
+---
+
+## Security Architecture
+
+### JWT Authentication (Stateless)
+
+All `/api/**` endpoints use **Bearer token** authentication. The flow:
+
+1. `POST /api/auth/register` or `POST /api/auth/login` → returns `{ "token": "eyJhbGc..." }`
+2. Include the token in every subsequent request: `Authorization: Bearer <token>`
+3. `GET /api/auth/me` → decodes the token and returns its claims
+
+Tokens are signed with **HS256** using a server-side secret (`JWT_SECRET` env var).
+
+---
+
+### Why CSRF Is Disabled for the JWT API
+
+CSRF (Cross-Site Request Forgery) attacks work by tricking a browser into sending a request to a site where it is already authenticated **via cookies**. Because this API uses `Authorization: Bearer` headers — which browsers never send automatically — there is no session cookie for an attacker to exploit. Disabling CSRF here is therefore not a security shortcut; it is the correct configuration for a stateless API.
+
+**When you MUST enable CSRF:**
+
+| Scenario | Why CSRF is needed |
+|---|---|
+| Spring MVC + Thymeleaf HTML forms | Browser submits session cookie automatically on POST |
+| Cookie-based session auth (`SESSION` cookie) | Any cross-origin page can trigger state changes |
+| OAuth2 `response_type=code` with `redirect_uri` | State parameter acts as a lightweight CSRF token |
+
+---
+
+### CORS vs CSRF — Key Differences
+
+| | CORS | CSRF |
+|---|---|---|
+| **What it protects** | Prevents cross-origin JavaScript from reading API responses | Prevents cross-origin pages from triggering state-changing requests |
+| **Enforced by** | Browser (preflight `OPTIONS` + `Origin` check) | Server (secret token comparison) |
+| **Bypassed by** | Non-browser clients (curl, Postman) | Non-browser clients AND SameSite=Strict cookies |
+| **This project** | `CorsConfigurationSource` in `SecurityConfig` — whitelists `localhost:*` and `*.smartecommerce.ecommerce.com` | Disabled for JWT API; enabled only for `/csrf-demo/**` |
+
+**CORS + CSRF interaction:** A tight CORS policy (no wildcard origins, `allowCredentials=true`) combined with CSRF tokens provides defence-in-depth for session-based apps. For this JWT API, CORS alone is sufficient.
+
+---
+
+### CSRF Token Demo (US 3.1)
+
+The `/csrf-demo/**` path runs through a **separate filter chain** (`@Order(1)`) with CSRF and sessions enabled. This illustrates how token-based CSRF protection works in traditional form apps without affecting the JWT API.
+
+**Postman walkthrough** (run steps in the same session — Postman must preserve cookies):
+
+```
+Step 1 — Get the token:
+  GET http://localhost:8080/csrf-demo/token
+  → Response: { "token": "abc123...", "headerName": "X-CSRF-TOKEN", "parameterName": "_csrf" }
+  → Cookie XSRF-TOKEN is set automatically
+
+Step 2 — Submit without the token (expect 403):
+  POST http://localhost:8080/csrf-demo/submit
+  Body (JSON): { "message": "hello" }
+  → 403 Forbidden  (CsrfFilter blocks the request)
+
+Step 3 — Submit with the token (expect 200):
+  POST http://localhost:8080/csrf-demo/submit
+  Header: X-CSRF-TOKEN: <value from Step 1>
+  Body (JSON): { "message": "hello" }
+  → 200 OK: { "status": "accepted", "received": "hello" }
+```
+
+---
+
+### Google OAuth2 Login (US 4.1)
+
+#### Setup
+
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
+2. Go to **APIs & Services → Credentials → Create OAuth 2.0 Client ID**.
+3. Add authorized redirect URI: `http://localhost:8080/login/oauth2/code/google`
+4. Set environment variables before starting the app:
+   ```bash
+   export GOOGLE_CLIENT_ID=<your-client-id>
+   export GOOGLE_CLIENT_SECRET=<your-client-secret>
+   ```
+
+#### Flow
+
+```
+Browser / Postman
+  → GET http://localhost:8080/oauth2/authorization/google
+  → (redirected to Google consent screen)
+  → (user grants access)
+  → Google redirects to http://localhost:8080/login/oauth2/code/google?code=...
+  → Spring exchanges code for access token
+  → CustomOAuth2UserService fetches profile (email, name, sub)
+  → Finds or creates local UserEntity
+  → OAuth2AuthenticationSuccessHandler generates JWT
+  → HTTP 200: { "status": "success", "data": { "token": "eyJhbGc...", "role": "customer", ... } }
+```
+
+**Account linking:** If a user already registered locally with the same email, their account is linked to Google (no duplicate created).
+
+---
+
+### Role-Based Access Control (US 4.2)
+
+Roles: `CUSTOMER` · `SELLER` · `ADMIN` (equivalent to STAFF in the spec)
+
+Access is enforced at **two layers** for defence-in-depth:
+
+| Layer | Where | Mechanism |
+|---|---|---|
+| URL-level | `SecurityConfig.securityFilterChain()` | `.hasRole(...)` / `.hasAnyRole(...)` matchers |
+| Method-level | Controller methods | `@PreAuthorize("hasRole('...')")` annotations |
+
+**Permission matrix:**
+
+| Endpoint group | CUSTOMER | SELLER | ADMIN |
+|---|---|---|---|
+| `GET /api/products/**`, `GET /api/categories/**` | ✅ public | ✅ public | ✅ public |
+| `POST/PUT/DELETE /api/products/**` | ❌ | ✅ | ✅ |
+| `POST/PUT/DELETE /api/categories/**` | ❌ | ✅ | ✅ |
+| `/api/inventory/**` | ❌ | ✅ | ✅ |
+| `PATCH /api/orders/{id}/status` | ❌ | ✅ | ✅ |
+| `PATCH /api/reviews/{id}/approve` | ❌ | ❌ | ✅ |
+| `/api/users/**` | ❌ | ❌ | ✅ |
+| `/api/activity-logs/**` | ❌ | ❌ | ✅ |
+| `/api/monitoring/**` | ❌ | ❌ | ✅ |
+| Cart, Orders (own), Reviews, Payments | ✅ | ✅ | ✅ |
+
+**Postman verification:**
+
+```
+1. Login as customer  → POST /api/products   → expect 403
+2. Login as seller    → POST /api/products   → expect 201
+3. Login as customer  → GET  /api/activity-logs → expect 403
+4. Login as admin     → GET  /api/activity-logs → expect 200
+5. Login as customer  → PATCH /api/reviews/1/approve → expect 403
+```

@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Reviews", description = "Product reviews — submission and moderation")
@@ -64,6 +65,7 @@ public class ReviewController {
 
     @Operation(summary = "Approve a review",
                description = "Marks the review as approved so it becomes publicly visible.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<ReviewEntity>> approve(
             @Parameter(description = "Review ID", example = "1") @PathVariable long id) {
