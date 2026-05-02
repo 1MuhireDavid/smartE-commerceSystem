@@ -50,8 +50,8 @@ server:
 # ── JWT ───────────────────────────────────────────────────────────────────────
 # Override JWT_SECRET with a strong base64-encoded key in production
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION}   # 24 h in milliseconds
+  secret: ${JWT_SECRET:c2VjcmV0LWRldi1qd3Qta2V5LWZvci10ZXN0aW5nLW9ubHktbm90LXByb2Q=}
+  expiration: ${JWT_EXPIRATION:86400000}   # 24 h in milliseconds
 
 # ── AOP monitoring ────────────────────────────────────────────────────────────
 monitoring:
