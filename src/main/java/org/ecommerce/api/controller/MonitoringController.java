@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.aspect.MethodMetrics;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.ecommerce.api.service.ActivityLogService;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.http.ResponseEntity;
@@ -32,11 +33,14 @@ public class MonitoringController {
 
     private final PerformanceMonitoringAspect monitoringAspect;
     private final CacheManager               cacheManager;
+    private final ActivityLogService         activityLogService;
 
     public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
-                                CacheManager cacheManager) {
-        this.monitoringAspect = monitoringAspect;
-        this.cacheManager     = cacheManager;
+                                CacheManager cacheManager,
+                                ActivityLogService activityLogService) {
+        this.monitoringAspect   = monitoringAspect;
+        this.cacheManager       = cacheManager;
+        this.activityLogService = activityLogService;
     }
 
     /**
@@ -107,6 +111,21 @@ public class MonitoringController {
 
         return ResponseEntity.ok(
                 org.ecommerce.api.dto.ApiResponse.success("Cache statistics retrieved", result));
+    }
+
+    @Operation(
+        summary     = "Get security event report (US 5.2)",
+        description = "Returns per-event-type counts from the activity_logs table: "
+                    + "login_success, login_failure, register_success, oauth2_login_success, "
+                    + "oauth2_login_failure, logout. Use this to detect unusual access patterns "
+                    + "or brute-force login attempts."
+    )
+    @ApiResponse(responseCode = "200", description = "Security report retrieved successfully")
+    @GetMapping("/security-report")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, Long>>> securityReport() {
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Security report retrieved", activityLogService.countByEventType()));
     }
 
     // ── Serialisable projection of MethodMetrics ──────────────────────────────

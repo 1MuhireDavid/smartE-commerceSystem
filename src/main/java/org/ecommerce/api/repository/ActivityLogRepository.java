@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, Long> {
 
     @Query("""
@@ -18,4 +20,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLogEntity, 
             @Param("userId")    Long userId,
             @Param("eventType") String eventType,
             Pageable pageable);
+
+    @Query("SELECT a.eventType, COUNT(a) FROM ActivityLogEntity a GROUP BY a.eventType")
+    List<Object[]> countAllGroupedByEventType();
 }

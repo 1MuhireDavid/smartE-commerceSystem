@@ -12,6 +12,7 @@ import org.ecommerce.api.dto.request.RegisterRequest;
 import org.ecommerce.api.dto.response.AuthResponse;
 import org.ecommerce.api.dto.response.TokenInfoResponse;
 import org.ecommerce.api.security.JwtService;
+import org.ecommerce.api.security.TokenBlacklistService;
 import org.ecommerce.api.service.AuthService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,10 +26,14 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthController(AuthService authService, JwtService jwtService) {
-        this.authService = authService;
-        this.jwtService  = jwtService;
+    public AuthController(AuthService authService,
+                          JwtService jwtService,
+                          TokenBlacklistService tokenBlacklistService) {
+        this.authService           = authService;
+        this.jwtService            = jwtService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @PostMapping("/register")
@@ -42,6 +47,24 @@ public class AuthController {
     @Operation(summary = "Log in with username or email — returns a signed JWT")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success("Login successful", authService.login(request));
+    }
+
+    /**
+     * Adds the caller's token to the in-memory blacklist so it is rejected
+     * on all subsequent requests, even before natural expiry (US 5.1).
+     */
+    @PostMapping("/logout")
+    @Operation(
+        summary = "Invalidate the current JWT (US 5.1 — token revocation)",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ApiResponse<Void> logout(HttpServletRequest request) {
+        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            tokenBlacklistService.revoke(token, jwtService.extractExpiry(token));
+        }
+        return ApiResponse.success("Logged out successfully", null);
     }
 
     /**

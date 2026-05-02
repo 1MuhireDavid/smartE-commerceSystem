@@ -23,10 +23,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
+    public JwtAuthFilter(JwtService jwtService,
+                         UserDetailsService userDetailsService,
+                         TokenBlacklistService tokenBlacklistService) {
+        this.jwtService            = jwtService;
+        this.userDetailsService    = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -42,6 +46,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(7);
+
+        if (tokenBlacklistService.isRevoked(token)) {
+            writeError(response, "Token has been revoked — please log in again");
+            return;
+        }
 
         try {
             String username = jwtService.extractUsername(token);

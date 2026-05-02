@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Service
 @Transactional(readOnly = true)
 public class ActivityLogServiceImpl implements ActivityLogService {
@@ -48,5 +51,14 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         }
 
         return activityLogRepository.save(log);
+    }
+
+    @Override
+    public Map<String, Long> countByEventType() {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (Object[] row : activityLogRepository.countAllGroupedByEventType()) {
+            counts.put((String) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 }
