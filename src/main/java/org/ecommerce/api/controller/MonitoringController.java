@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.aspect.MethodMetrics;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.service.ActivityLogService;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -75,14 +76,14 @@ public class MonitoringController {
     )
     @ApiResponse(responseCode = "200", description = "Metrics retrieved successfully")
     @GetMapping("/metrics")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, MetricsSummary>>> metrics() {
+    public ResponseEntity<ApiResponseDto<Map<String, MetricsSummary>>> metrics() {
         Map<String, MethodMetrics>  raw     = monitoringAspect.getMetrics();
         Map<String, MetricsSummary> summary = new LinkedHashMap<>();
 
         raw.forEach((key, m) -> summary.put(key, new MetricsSummary(m)));
 
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Metrics retrieved", summary));
+                ApiResponseDto.success("Metrics retrieved", summary));
     }
 
     @Operation(
@@ -93,7 +94,7 @@ public class MonitoringController {
     )
     @ApiResponse(responseCode = "200", description = "Cache statistics retrieved successfully")
     @GetMapping("/cache-stats")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, CacheStatsSummary>>> cacheStats() {
+    public ResponseEntity<ApiResponseDto<Map<String, CacheStatsSummary>>> cacheStats() {
         Map<String, CacheStatsSummary> result = new LinkedHashMap<>();
 
         cacheManager.getCacheNames().forEach(name -> {
@@ -110,7 +111,7 @@ public class MonitoringController {
         });
 
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Cache statistics retrieved", result));
+                ApiResponseDto.success("Cache statistics retrieved", result));
     }
 
     @Operation(
@@ -122,9 +123,9 @@ public class MonitoringController {
     )
     @ApiResponse(responseCode = "200", description = "Security report retrieved successfully")
     @GetMapping("/security-report")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, Long>>> securityReport() {
+    public ResponseEntity<ApiResponseDto<Map<String, Long>>> securityReport() {
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success(
+                ApiResponseDto.success(
                         "Security report retrieved", activityLogService.countByEventType()));
     }
 

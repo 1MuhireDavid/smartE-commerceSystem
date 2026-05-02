@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.CategoryRequest;
 import org.ecommerce.api.entity.CategoryEntity;
@@ -39,10 +40,10 @@ public class CategoryController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Categories retrieved successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid query parameter",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PagedResponse<CategoryEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<CategoryEntity>>> list(
             @Parameter(description = "Partial match on category name")
             @RequestParam(required = false) String keyword,
 
@@ -60,21 +61,21 @@ public class CategoryController {
 
         PagedResponse<CategoryEntity> data = categoryService.findAll(keyword, active, pageable);
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Categories retrieved successfully", data));
+                ApiResponseDto.success("Categories retrieved successfully", data));
     }
 
     @Operation(summary = "Get category by ID")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Category found"),
         @ApiResponse(responseCode = "404", description = "Category not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<CategoryEntity>> getById(
+    public ResponseEntity<ApiResponseDto<CategoryEntity>> getById(
             @Parameter(description = "Category ID", required = true, example = "1")
             @PathVariable int id) {
         CategoryEntity category = categoryService.findById(id);
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success(category));
+        return ResponseEntity.ok(ApiResponseDto.success(category));
     }
 
     @Operation(
@@ -84,40 +85,40 @@ public class CategoryController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Category created successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Slug already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PostMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<CategoryEntity>> create(
+    public ResponseEntity<ApiResponseDto<CategoryEntity>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Category details", required = true)
             @Valid @RequestBody CategoryRequest request) {
         CategoryEntity created = categoryService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(org.ecommerce.api.dto.ApiResponse.success("Category created successfully", created));
+                .body(ApiResponseDto.success("Category created successfully", created));
     }
 
     @Operation(summary = "Update category", description = "Replaces all fields of an existing category.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Category updated successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "Category not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Slug already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<CategoryEntity>> update(
+    public ResponseEntity<ApiResponseDto<CategoryEntity>> update(
             @Parameter(description = "Category ID", required = true, example = "1")
             @PathVariable int id,
             @Valid @RequestBody CategoryRequest request) {
         CategoryEntity updated = categoryService.update(id, request);
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Category updated successfully", updated));
+                ApiResponseDto.success("Category updated successfully", updated));
     }
 
     @Operation(summary = "Delete category",
@@ -126,15 +127,15 @@ public class CategoryController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Category deleted successfully"),
         @ApiResponse(responseCode = "404", description = "Category not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Void>> delete(
+    public ResponseEntity<ApiResponseDto<Void>> delete(
             @Parameter(description = "Category ID", required = true, example = "1")
             @PathVariable int id) {
         categoryService.delete(id);
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Category deleted successfully", null));
+                ApiResponseDto.success("Category deleted successfully", null));
     }
 }

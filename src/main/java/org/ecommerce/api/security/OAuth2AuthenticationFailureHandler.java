@@ -3,7 +3,7 @@ package org.ecommerce.api.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.request.ActivityLogRequest;
 import org.ecommerce.api.service.ActivityLogService;
 import org.slf4j.Logger;
@@ -43,7 +43,7 @@ public class OAuth2AuthenticationFailureHandler implements AuthenticationFailure
         response.setCharacterEncoding("UTF-8");
         objectMapper.writeValue(
             response.getWriter(),
-            ApiResponse.error("OAuth2 authentication failed: " + exception.getMessage())
+            ApiResponseDto.error("OAuth2 authentication failed: " + exception.getMessage())
         );
     }
 

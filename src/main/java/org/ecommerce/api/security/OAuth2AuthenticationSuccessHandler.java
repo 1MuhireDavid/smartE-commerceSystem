@@ -3,7 +3,7 @@ package org.ecommerce.api.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.request.ActivityLogRequest;
 import org.ecommerce.api.dto.response.AuthResponse;
 import org.ecommerce.api.entity.UserEntity;
@@ -60,7 +60,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         response.setCharacterEncoding("UTF-8");
         objectMapper.writeValue(
             response.getWriter(),
-            ApiResponse.success("Google login successful", authResponse)
+            ApiResponseDto.success("Google login successful", authResponse)
         );
     }
 

@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.request.LoginRequest;
 import org.ecommerce.api.dto.request.RegisterRequest;
 import org.ecommerce.api.dto.response.AuthResponse;
@@ -39,14 +39,14 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a new customer account and receive a JWT")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ApiResponse.success("Registration successful", authService.register(request));
+    public ApiResponseDto<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponseDto.success("Registration successful", authService.register(request));
     }
 
     @PostMapping("/login")
     @Operation(summary = "Log in with username or email — returns a signed JWT")
-    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success("Login successful", authService.login(request));
+    public ApiResponseDto<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ApiResponseDto.success("Login successful", authService.login(request));
     }
 
     /**
@@ -58,13 +58,13 @@ public class AuthController {
         summary = "Invalidate the current JWT (US 5.1 — token revocation)",
         security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ApiResponse<Void> logout(HttpServletRequest request) {
+    public ApiResponseDto<Void> logout(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             tokenBlacklistService.revoke(token, jwtService.extractExpiry(token));
         }
-        return ApiResponse.success("Logged out successfully", null);
+        return ApiResponseDto.success("Logged out successfully", null);
     }
 
     /**
@@ -76,7 +76,7 @@ public class AuthController {
         summary = "Decode and return claims from the current JWT (US 2.2 verification)",
         security = @SecurityRequirement(name = "bearerAuth")
     )
-    public ApiResponse<TokenInfoResponse> me(HttpServletRequest request) {
+    public ApiResponseDto<TokenInfoResponse> me(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header == null || !header.startsWith("Bearer ")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
@@ -99,6 +99,6 @@ public class AuthController {
                 remaining
         );
 
-        return ApiResponse.success("Token is valid", info);
+        return ApiResponseDto.success("Token is valid", info);
     }
 }

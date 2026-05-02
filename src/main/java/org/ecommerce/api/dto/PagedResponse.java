@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 /**
- * Paginated payload included inside {@link ApiResponse#getData()}.
+ * Paginated payload included inside {@link ApiResponseDto#getData()}.
  */
 @Schema(description = "Paginated result set")
 public class PagedResponse<T> {

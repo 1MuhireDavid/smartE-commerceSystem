@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.PaymentRequest;
 import org.ecommerce.api.entity.PaymentEntity;
@@ -29,7 +29,7 @@ public class PaymentController {
 
     @Operation(summary = "List payments", description = "Filterable by order and payment status.")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<PaymentEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<PaymentEntity>>> list(
             @Parameter(description = "Filter by order ID", example = "1")
             @RequestParam(required = false) Long orderId,
 
@@ -45,33 +45,33 @@ public class PaymentController {
                 orderId, status,
                 PageRequest.of(page, clampedSize, Sort.by("paymentId").descending()));
 
-        return ResponseEntity.ok(ApiResponse.success("Payments retrieved successfully", data));
+        return ResponseEntity.ok(ApiResponseDto.success("Payments retrieved successfully", data));
     }
 
     @Operation(summary = "Get payment by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PaymentEntity>> getById(
+    public ResponseEntity<ApiResponseDto<PaymentEntity>> getById(
             @Parameter(description = "Payment ID", example = "1") @PathVariable long id) {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.findById(id)));
+        return ResponseEntity.ok(ApiResponseDto.success(paymentService.findById(id)));
     }
 
     @Operation(summary = "Record a new payment against an order")
     @PostMapping
-    public ResponseEntity<ApiResponse<PaymentEntity>> create(@Valid @RequestBody PaymentRequest request) {
+    public ResponseEntity<ApiResponseDto<PaymentEntity>> create(@Valid @RequestBody PaymentRequest request) {
         PaymentEntity created = paymentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Payment recorded successfully", created));
+                .body(ApiResponseDto.success("Payment recorded successfully", created));
     }
 
     @Operation(summary = "Update payment status",
                description = "Setting status to 'completed' also records the paidAt timestamp.")
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<PaymentEntity>> updateStatus(
+    public ResponseEntity<ApiResponseDto<PaymentEntity>> updateStatus(
             @Parameter(description = "Payment ID", example = "1") @PathVariable long id,
             @Parameter(description = "New status",
                        schema = @Schema(allowableValues = {"pending", "completed", "failed", "refunded"}))
             @RequestParam String status) {
         PaymentEntity updated = paymentService.updateStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success("Payment status updated", updated));
+        return ResponseEntity.ok(ApiResponseDto.success("Payment status updated", updated));
     }
 }

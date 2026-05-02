@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.OrderStatsDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.OrderRequest;
@@ -34,7 +34,7 @@ public class OrderController {
 
     @Operation(summary = "List orders", description = "Filterable by user and status, sorted newest-first.")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<OrderEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<OrderEntity>>> list(
             @Parameter(description = "Filter by user ID", example = "1")
             @RequestParam(required = false) Long userId,
 
@@ -50,51 +50,51 @@ public class OrderController {
                 userId, status,
                 PageRequest.of(page, clampedSize, Sort.by("orderedAt").descending()));
 
-        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", data));
+        return ResponseEntity.ok(ApiResponseDto.success("Orders retrieved successfully", data));
     }
 
     @Operation(summary = "Get order by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<OrderEntity>> getById(
+    public ResponseEntity<ApiResponseDto<OrderEntity>> getById(
             @Parameter(description = "Order ID", example = "1") @PathVariable long id) {
-        return ResponseEntity.ok(ApiResponse.success(orderService.findById(id)));
+        return ResponseEntity.ok(ApiResponseDto.success(orderService.findById(id)));
     }
 
     @Operation(summary = "Get line items for an order")
     @GetMapping("/{id}/items")
-    public ResponseEntity<ApiResponse<List<OrderItemEntity>>> getItems(
+    public ResponseEntity<ApiResponseDto<List<OrderItemEntity>>> getItems(
             @Parameter(description = "Order ID", example = "1") @PathVariable long id) {
-        return ResponseEntity.ok(ApiResponse.success(orderService.findItems(id)));
+        return ResponseEntity.ok(ApiResponseDto.success(orderService.findItems(id)));
     }
 
     @Operation(summary = "Place a new order",
                description = "Calculates subtotal from current product prices and validates the discount amount.")
     @PostMapping
-    public ResponseEntity<ApiResponse<OrderEntity>> create(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<ApiResponseDto<OrderEntity>> create(@Valid @RequestBody OrderRequest request) {
         OrderEntity created = orderService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Order placed successfully", created));
+                .body(ApiResponseDto.success("Order placed successfully", created));
     }
 
     @Operation(
             summary     = "Order statistics",
             description = "Aggregate order counts and revenue grouped by status, plus total confirmed (paid) revenue.")
     @GetMapping("/stats")
-    public ResponseEntity<ApiResponse<OrderStatsDto>> getStats() {
+    public ResponseEntity<ApiResponseDto<OrderStatsDto>> getStats() {
         return ResponseEntity.ok(
-                ApiResponse.success("Order statistics retrieved", orderService.getStats()));
+                ApiResponseDto.success("Order statistics retrieved", orderService.getStats()));
     }
 
     @Operation(summary = "Update order status",
                description = "Allowed values: pending → processing → completed | cancelled")
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<OrderEntity>> updateStatus(
+    public ResponseEntity<ApiResponseDto<OrderEntity>> updateStatus(
             @Parameter(description = "Order ID", example = "1") @PathVariable long id,
             @Parameter(description = "New status",
                        schema = @Schema(allowableValues = {"pending", "processing", "completed", "cancelled"}))
             @RequestParam String status) {
         OrderEntity updated = orderService.updateStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success("Order status updated", updated));
+        return ResponseEntity.ok(ApiResponseDto.success("Order status updated", updated));
     }
 }

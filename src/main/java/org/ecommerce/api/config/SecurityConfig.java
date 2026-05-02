@@ -57,28 +57,12 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // ── CSRF demo filter chain (US 3.1) ───────────────────────────────────────
-    // This secondary chain matches ONLY /csrf-demo/** and exists purely for
-    // educational purposes. It enables CSRF + sessions to illustrate the token
-    // handshake that traditional form-based apps must use.
-    //
-    // Why CSRF is irrelevant for the main JWT API:
-    //   CSRF attacks rely on the browser automatically sending session cookies
-    //   to a different origin's page. Because our main API uses Bearer tokens
-    //   (Authorization header), which browsers never send automatically, there
-    //   is nothing for an attacker to "forge". Disabling CSRF here is therefore
-    //   correct and safe — it is NOT a security shortcut.
-    //
-    // When you MUST enable CSRF:
-    //   - Cookie-based session authentication (Spring MVC + Thymeleaf forms)
-    //   - Any endpoint whose state changes are triggered by browser form POSTs
-    //   - Anywhere SameSite=Strict/Lax cookies are not sufficient by themselves
     @Bean
     @Order(1)
     public SecurityFilterChain csrfDemoFilterChain(HttpSecurity http) throws Exception {
         XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
         http
-            .securityMatcher("/csrf-demo/**")
+            .securityMatcher("/csrf-demo/** ")
             .csrf(csrf -> csrf
                 // CookieCsrfTokenRepository stores the token in an XSRF-TOKEN cookie.
                 // withHttpOnlyFalse() lets JavaScript read it so SPAs can include it.
@@ -155,7 +139,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ── CORS (US 1.2) ─────────────────────────────────────────────────────────
+    // ── CORS  ─────────────────────────────────────────────────────────
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

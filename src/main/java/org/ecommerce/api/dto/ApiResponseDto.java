@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param <T> payload type
  */
 @Schema(description = "Standard API response wrapper")
-public class ApiResponse<T> {
+public class ApiResponseDto<T> {
 
     @Schema(description = "Result of the operation", example = "success",
             allowableValues = {"success", "error"})
@@ -21,22 +21,22 @@ public class ApiResponse<T> {
     @Schema(description = "Response payload — null on error responses")
     private final T data;
 
-    private ApiResponse(String status, String message, T data) {
+    private ApiResponseDto(String status, String message, T data) {
         this.status  = status;
         this.message = message;
         this.data    = data;
     }
 
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>("success", message, data);
+    public static <T> ApiResponseDto<T> success(String message, T data) {
+        return new ApiResponseDto<>("success", message, data);
     }
 
-    public static <T> ApiResponse<T> success(T data) {
+    public static <T> ApiResponseDto<T> success(T data) {
         return success("OK", data);
     }
 
-    public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>("error", message, null);
+    public static <T> ApiResponseDto<T> error(String message) {
+        return new ApiResponseDto<>("error", message, null);
     }
 
     public String getStatus()  { return status; }

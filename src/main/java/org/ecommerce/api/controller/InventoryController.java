@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.entity.InventoryEntity;
 import org.ecommerce.api.service.InventoryService;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +32,9 @@ public class InventoryController {
             description = "Returns all inventory records where qty_in_stock <= reorder_level.")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Low-stock items retrieved successfully"))
     @GetMapping("/low-stock")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<List<InventoryEntity>>> getLowStock() {
+    public ResponseEntity<ApiResponseDto<List<InventoryEntity>>> getLowStock() {
         List<InventoryEntity> items = inventoryService.findLowStock();
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Low-stock items retrieved successfully", items));
+                ApiResponseDto.success("Low-stock items retrieved successfully", items));
     }
 }

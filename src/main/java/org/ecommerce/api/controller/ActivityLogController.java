@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.ActivityLogRequest;
 import org.ecommerce.api.entity.ActivityLogEntity;
@@ -30,7 +30,7 @@ public class ActivityLogController {
 
     @Operation(summary = "List activity logs", description = "Filterable by user and event type, sorted newest-first.")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<ActivityLogEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<ActivityLogEntity>>> list(
             @Parameter(description = "Filter by user ID", example = "1")
             @RequestParam(required = false) Long userId,
 
@@ -45,16 +45,16 @@ public class ActivityLogController {
                 userId, eventType,
                 PageRequest.of(page, clampedSize, Sort.by("loggedAt").descending()));
 
-        return ResponseEntity.ok(ApiResponse.success("Activity logs retrieved successfully", data));
+        return ResponseEntity.ok(ApiResponseDto.success("Activity logs retrieved successfully", data));
     }
 
     @Operation(summary = "Record an activity event",
                description = "eventData must be a valid JSON string. userId is optional for anonymous events.")
     @PostMapping
-    public ResponseEntity<ApiResponse<ActivityLogEntity>> create(
+    public ResponseEntity<ApiResponseDto<ActivityLogEntity>> create(
             @Valid @RequestBody ActivityLogRequest request) {
         ActivityLogEntity created = activityLogService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Activity logged", created));
+                .body(ApiResponseDto.success("Activity logged", created));
     }
 }

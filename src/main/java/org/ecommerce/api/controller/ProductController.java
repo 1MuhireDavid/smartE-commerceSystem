@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.ProductRequest;
 import org.ecommerce.api.entity.ProductEntity;
@@ -53,10 +54,10 @@ public class ProductController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Products retrieved successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid query parameter",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PagedResponse<ProductEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<ProductEntity>>> list(
             @Parameter(description = "Partial product name search (case-insensitive)", example = "headphones")
             @RequestParam(required = false) String keyword,
 
@@ -96,21 +97,21 @@ public class ProductController {
                 productService.findAll(keyword, categoryId, status, sellerId, pageable);
 
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Products retrieved successfully", data));
+                ApiResponseDto.success("Products retrieved successfully", data));
     }
 
     @Operation(summary = "Get product by ID", description = "Returns a single product including inventory data.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Product found"),
         @ApiResponse(responseCode = "404", description = "Product not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<ProductEntity>> getById(
+    public ResponseEntity<ApiResponseDto<ProductEntity>> getById(
             @Parameter(description = "Product ID", required = true, example = "1")
             @PathVariable long id) {
         ProductEntity product = productService.findById(id);
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success(product));
+        return ResponseEntity.ok(ApiResponseDto.success(product));
     }
 
     @Operation(
@@ -122,21 +123,21 @@ public class ProductController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Product created successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error (including discount > base price)",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "Seller or category not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Slug already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PostMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<ProductEntity>> create(
+    public ResponseEntity<ApiResponseDto<ProductEntity>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Product details", required = true)
             @Valid @RequestBody ProductRequest request) {
         ProductEntity created = productService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(org.ecommerce.api.dto.ApiResponse.success("Product created successfully", created));
+                .body(ApiResponseDto.success("Product created successfully", created));
     }
 
     @Operation(
@@ -147,21 +148,21 @@ public class ProductController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Product updated successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "Product not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Slug already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<ProductEntity>> update(
+    public ResponseEntity<ApiResponseDto<ProductEntity>> update(
             @Parameter(description = "Product ID", required = true, example = "1")
             @PathVariable long id,
             @Valid @RequestBody ProductRequest request) {
         ProductEntity updated = productService.update(id, request);
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Product updated successfully", updated));
+                ApiResponseDto.success("Product updated successfully", updated));
     }
 
     @Operation(summary = "Delete product",
@@ -169,15 +170,15 @@ public class ProductController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Product deleted successfully"),
         @ApiResponse(responseCode = "404", description = "Product not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Void>> delete(
+    public ResponseEntity<ApiResponseDto<Void>> delete(
             @Parameter(description = "Product ID", required = true, example = "1")
             @PathVariable long id) {
         productService.delete(id);
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Product deleted successfully", null));
+                ApiResponseDto.success("Product deleted successfully", null));
     }
 }

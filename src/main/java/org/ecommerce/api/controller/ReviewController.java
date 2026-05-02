@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.ecommerce.api.dto.ApiResponse;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.ReviewRequest;
 import org.ecommerce.api.entity.ReviewEntity;
@@ -29,7 +29,7 @@ public class ReviewController {
 
     @Operation(summary = "List reviews", description = "Filterable by product and approval status.")
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<ReviewEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<ReviewEntity>>> list(
             @Parameter(description = "Filter by product ID", example = "5")
             @RequestParam(required = false) Long productId,
 
@@ -44,40 +44,40 @@ public class ReviewController {
                 productId, approved,
                 PageRequest.of(page, clampedSize, Sort.by("createdAt").descending()));
 
-        return ResponseEntity.ok(ApiResponse.success("Reviews retrieved successfully", data));
+        return ResponseEntity.ok(ApiResponseDto.success("Reviews retrieved successfully", data));
     }
 
     @Operation(summary = "Get review by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ReviewEntity>> getById(
+    public ResponseEntity<ApiResponseDto<ReviewEntity>> getById(
             @Parameter(description = "Review ID", example = "1") @PathVariable long id) {
-        return ResponseEntity.ok(ApiResponse.success(reviewService.findById(id)));
+        return ResponseEntity.ok(ApiResponseDto.success(reviewService.findById(id)));
     }
 
     @Operation(summary = "Submit a product review",
                description = "Each user may only review a given product once.")
     @PostMapping
-    public ResponseEntity<ApiResponse<ReviewEntity>> create(@Valid @RequestBody ReviewRequest request) {
+    public ResponseEntity<ApiResponseDto<ReviewEntity>> create(@Valid @RequestBody ReviewRequest request) {
         ReviewEntity created = reviewService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Review submitted successfully", created));
+                .body(ApiResponseDto.success("Review submitted successfully", created));
     }
 
     @Operation(summary = "Approve a review",
                description = "Marks the review as approved so it becomes publicly visible.")
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<ReviewEntity>> approve(
+    public ResponseEntity<ApiResponseDto<ReviewEntity>> approve(
             @Parameter(description = "Review ID", example = "1") @PathVariable long id) {
         ReviewEntity approved = reviewService.approve(id);
-        return ResponseEntity.ok(ApiResponse.success("Review approved", approved));
+        return ResponseEntity.ok(ApiResponseDto.success("Review approved", approved));
     }
 
     @Operation(summary = "Delete a review")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(
+    public ResponseEntity<ApiResponseDto<Void>> delete(
             @Parameter(description = "Review ID", example = "1") @PathVariable long id) {
         reviewService.delete(id);
-        return ResponseEntity.ok(ApiResponse.success("Review deleted", null));
+        return ResponseEntity.ok(ApiResponseDto.success("Review deleted", null));
     }
 }

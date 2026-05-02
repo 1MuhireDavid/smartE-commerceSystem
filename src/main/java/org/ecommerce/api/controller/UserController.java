@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.ecommerce.api.dto.ApiResponseDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.UserRequest;
 import org.ecommerce.api.entity.UserEntity;
@@ -40,10 +41,10 @@ public class UserController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid query parameter",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PagedResponse<UserEntity>>> list(
+    public ResponseEntity<ApiResponseDto<PagedResponse<UserEntity>>> list(
             @Parameter(description = "Partial match on fullName, email, or username")
             @RequestParam(required = false) String keyword,
 
@@ -72,21 +73,21 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, sort);
         PagedResponse<UserEntity> data = userService.findAll(keyword, role, active, pageable);
 
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success("Users retrieved successfully", data));
+        return ResponseEntity.ok(ApiResponseDto.success("Users retrieved successfully", data));
     }
 
     @Operation(summary = "Get user by ID")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User found"),
         @ApiResponse(responseCode = "404", description = "User not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<UserEntity>> getById(
+    public ResponseEntity<ApiResponseDto<UserEntity>> getById(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable long id) {
         UserEntity user = userService.findById(id);
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success(user));
+        return ResponseEntity.ok(ApiResponseDto.success(user));
     }
 
     @Operation(
@@ -96,18 +97,18 @@ public class UserController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "User created successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Email or username already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PostMapping
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<UserEntity>> create(
+    public ResponseEntity<ApiResponseDto<UserEntity>> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "User details", required = true)
             @Valid @RequestBody UserRequest request) {
         UserEntity created = userService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(org.ecommerce.api.dto.ApiResponse.success("User created successfully", created));
+                .body(ApiResponseDto.success("User created successfully", created));
     }
 
     @Operation(
@@ -118,32 +119,32 @@ public class UserController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User updated successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "404", description = "User not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class))),
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
         @ApiResponse(responseCode = "409", description = "Email or username already in use",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @PutMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<UserEntity>> update(
+    public ResponseEntity<ApiResponseDto<UserEntity>> update(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable long id,
             @Valid @RequestBody UserRequest request) {
         UserEntity updated = userService.update(id, request);
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success("User updated successfully", updated));
+        return ResponseEntity.ok(ApiResponseDto.success("User updated successfully", updated));
     }
 
     @Operation(summary = "Delete user", description = "Permanently removes a user account.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User deleted successfully"),
         @ApiResponse(responseCode = "404", description = "User not found",
-                     content = @Content(schema = @Schema(implementation = org.ecommerce.api.dto.ApiResponse.class)))
+                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Void>> delete(
+    public ResponseEntity<ApiResponseDto<Void>> delete(
             @Parameter(description = "User ID", required = true, example = "1")
             @PathVariable long id) {
         userService.delete(id);
-        return ResponseEntity.ok(org.ecommerce.api.dto.ApiResponse.success("User deleted successfully", null));
+        return ResponseEntity.ok(ApiResponseDto.success("User deleted successfully", null));
     }
 }
