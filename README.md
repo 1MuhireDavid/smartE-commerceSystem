@@ -859,6 +859,23 @@ Tokens are signed with **HS256** using a server-side secret (`JWT_SECRET` env va
 
 ---
 
+### Password Hashing (BCrypt)
+
+User passwords are **never stored in plain text**. The registration and password-update flows always hash through `BCryptPasswordEncoder` before writing to the database:
+
+```
+plain-text password  →  BCryptPasswordEncoder.encode()  →  $2a$10$... (stored in DB)
+```
+
+**Why BCrypt?**
+- Built-in salt — every hash is unique even for identical passwords, defeating rainbow-table attacks
+- Adaptive cost factor (`strength=10` by default) — deliberately slow to resist brute-force
+- Spring Security's `AuthenticationManager` calls `BCryptPasswordEncoder.matches()` transparently on login; raw passwords never touch the service layer after the registration call
+
+**Verification:** The `passwordHash` column in the `users` table always starts with `$2a$` — the BCrypt header.
+
+---
+
 ### Why CSRF Is Disabled for the JWT API
 
 CSRF (Cross-Site Request Forgery) attacks work by tricking a browser into sending a request to a site where it is already authenticated **via cookies**. Because this API uses `Authorization: Bearer` headers — which browsers never send automatically — there is no session cookie for an attacker to exploit. Disabling CSRF here is therefore not a security shortcut; it is the correct configuration for a stateless API.
