@@ -1,5 +1,6 @@
 package org.ecommerce.api.service.impl;
 
+import org.ecommerce.api.config.AsyncConfig;
 import org.ecommerce.api.dto.OrderStatsDto;
 import org.ecommerce.api.dto.PagedResponse;
 import org.ecommerce.api.dto.request.OrderItemRequest;
@@ -14,6 +15,7 @@ import org.ecommerce.api.repository.OrderRepository;
 import org.ecommerce.api.repository.ProductRepository;
 import org.ecommerce.api.repository.UserRepository;
 import org.ecommerce.api.service.OrderService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,7 +28,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,17 +47,20 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository      userRepository;
     private final ProductRepository   productRepository;
     private final InventoryRepository inventoryRepository;
+    private final Executor            taskExecutor;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderItemRepository orderItemRepository,
                             UserRepository userRepository,
                             ProductRepository productRepository,
-                            InventoryRepository inventoryRepository) {
+                            InventoryRepository inventoryRepository,
+                            @Qualifier(AsyncConfig.EXECUTOR_BEAN) Executor taskExecutor) {
         this.orderRepository     = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.userRepository      = userRepository;
         this.productRepository   = productRepository;
         this.inventoryRepository = inventoryRepository;
+        this.taskExecutor        = taskExecutor;
     }
 
     @Override
@@ -90,11 +100,18 @@ public class OrderServiceImpl implements OrderService {
                 ? request.getDiscountAmount()
                 : BigDecimal.ZERO;
 
+        // Batch-load all products in one IN query instead of N individual SELECTs
+        List<Long> productIds = request.getItems().stream()
+                .map(OrderItemRequest::getProductId)
+                .toList();
+        Map<Long, ProductEntity> productMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(ProductEntity::getProductId, p -> p));
+
         List<OrderItemEntity> lineItems = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (OrderItemRequest line : request.getItems()) {
-            ProductEntity product = productRepository.findById(line.getProductId())
+            ProductEntity product = Optional.ofNullable(productMap.get(line.getProductId()))
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Product not found with id: " + line.getProductId()));
 
@@ -132,10 +149,9 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
 
-        for (OrderItemEntity item : lineItems) {
-            item.setOrder(order);
-            orderItemRepository.save(item);
-        }
+        // Set FK on all items then batch-insert with a single saveAll flush
+        lineItems.forEach(item -> item.setOrder(order));
+        orderItemRepository.saveAll(lineItems);
 
         return order;
     }
@@ -155,14 +171,19 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.save(order);
     }
 
-    // REPEATABLE_READ ensures that the two aggregate queries (getStatsByStatus and
-    // sumPaidRevenue) see a consistent snapshot of the orders table — concurrent inserts
-    // between the two reads cannot skew the totals reported to the caller.
+    // The two aggregate queries are independent — run them on the task executor in parallel
+    // to halve round-trip latency. Each query runs in its own Spring Data transaction on the
+    // executor thread. REPEATABLE_READ across both queries is dropped as an acceptable
+    // trade-off: stats are approximate by nature and don't require a single consistent snapshot.
     @Override
-    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public OrderStatsDto getStats() {
-        List<Object[]> rows = orderRepository.getStatsByStatus();
-        BigDecimal paidRevenue = orderRepository.sumPaidRevenue();
+        CompletableFuture<List<Object[]>> statsFuture = CompletableFuture.supplyAsync(
+                orderRepository::getStatsByStatus, taskExecutor);
+        CompletableFuture<BigDecimal> revenueFuture = CompletableFuture.supplyAsync(
+                orderRepository::sumPaidRevenue, taskExecutor);
+
+        List<Object[]>  rows        = statsFuture.join();
+        BigDecimal      paidRevenue = revenueFuture.join();
 
         List<OrderStatsDto.StatusCount> byStatus = rows.stream()
                 .map(r -> new OrderStatsDto.StatusCount(

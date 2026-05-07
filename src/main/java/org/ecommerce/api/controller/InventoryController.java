@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Tag(name = "Inventory", description = "Inventory monitoring endpoints")
 @PreAuthorize("hasAnyRole('SELLER','ADMIN')")
@@ -27,13 +28,17 @@ public class InventoryController {
     }
 
     @Operation(
-            summary     = "List low-stock items",
-            description = "Returns all inventory records where qty_in_stock <= reorder_level.")
+            summary     = "List low-stock items (async)",
+            description = "Returns all inventory records where qty_in_stock <= reorder_level. "
+                        + "The DB query runs on the async task executor so the Servlet thread is "
+                        + "released immediately, allowing Tomcat to serve other requests while "
+                        + "this query completes.")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Low-stock items retrieved successfully"))
     @GetMapping("/low-stock")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<List<InventoryEntity>>> getLowStock() {
-        List<InventoryEntity> items = inventoryService.findLowStock();
-        return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Low-stock items retrieved successfully", items));
+    public CompletableFuture<ResponseEntity<org.ecommerce.api.dto.ApiResponse<List<InventoryEntity>>>> getLowStock() {
+        return inventoryService.findLowStockAsync()
+                .thenApply(items -> ResponseEntity.ok(
+                        org.ecommerce.api.dto.ApiResponse.success(
+                                "Low-stock items retrieved successfully", items)));
     }
 }
