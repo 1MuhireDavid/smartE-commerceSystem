@@ -6,7 +6,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.aspect.MethodMetrics;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.ecommerce.api.dto.PerformanceReportDto;
 import org.ecommerce.api.service.ActivityLogService;
+import org.ecommerce.api.service.PerformanceReportService;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,13 +37,16 @@ public class MonitoringController {
     private final PerformanceMonitoringAspect monitoringAspect;
     private final CacheManager               cacheManager;
     private final ActivityLogService         activityLogService;
+    private final PerformanceReportService   performanceReportService;
 
     public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
                                 CacheManager cacheManager,
-                                ActivityLogService activityLogService) {
-        this.monitoringAspect   = monitoringAspect;
-        this.cacheManager       = cacheManager;
-        this.activityLogService = activityLogService;
+                                ActivityLogService activityLogService,
+                                PerformanceReportService performanceReportService) {
+        this.monitoringAspect        = monitoringAspect;
+        this.cacheManager            = cacheManager;
+        this.activityLogService      = activityLogService;
+        this.performanceReportService = performanceReportService;
     }
 
     /**
@@ -93,17 +99,17 @@ public class MonitoringController {
     )
     @ApiResponse(responseCode = "200", description = "Cache statistics retrieved successfully")
     @GetMapping("/cache-stats")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, CacheStatsSummary>>> cacheStats() {
-        Map<String, CacheStatsSummary> result = new LinkedHashMap<>();
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, PerformanceReportDto.CacheStatsSummary>>> cacheStats() {
+        Map<String, PerformanceReportDto.CacheStatsSummary> result = new LinkedHashMap<>();
 
         cacheManager.getCacheNames().forEach(name -> {
             org.springframework.cache.Cache cache = cacheManager.getCache(name);
             if (cache instanceof CaffeineCache caffeineCache) {
                 CacheStats stats = caffeineCache.getNativeCache().stats();
-                result.put(name, new CacheStatsSummary(
+                result.put(name, new PerformanceReportDto.CacheStatsSummary(
                         stats.hitCount(),
                         stats.missCount(),
-                        stats.hitRate(),
+                        Math.round(stats.hitRate() * 1000.0) / 1000.0,
                         stats.evictionCount(),
                         caffeineCache.getNativeCache().estimatedSize()));
             }
@@ -111,6 +117,38 @@ public class MonitoringController {
 
         return ResponseEntity.ok(
                 org.ecommerce.api.dto.ApiResponse.success("Cache statistics retrieved", result));
+    }
+
+    @Operation(
+        summary     = "Get full performance baseline report (US 1.1 / 1.2)",
+        description = "Aggregates JVM heap/CPU/GC, Hibernate query statistics, top-10 slowest "
+                    + "service methods (with min/avg/max), Caffeine cache hit rates, top-10 "
+                    + "slowest HTTP endpoints, and the full bottleneck catalogue into a single "
+                    + "point-in-time snapshot. Use this to capture the baseline before applying "
+                    + "optimisations in later Epics."
+    )
+    @ApiResponse(responseCode = "200", description = "Performance report generated successfully")
+    @GetMapping("/performance-report")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PerformanceReportDto.PerformanceBaselineReport>> performanceReport() {
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Performance report generated",
+                        performanceReportService.generateReport()));
+    }
+
+    @Operation(
+        summary     = "Get identified performance bottlenecks (US 1.2)",
+        description = "Returns the static catalogue of 13 bottlenecks identified via code analysis, "
+                    + "ordered by severity (CRITICAL → HIGH → MEDIUM → LOW). Each entry includes "
+                    + "category, location, description, and a concrete recommendation."
+    )
+    @ApiResponse(responseCode = "200", description = "Bottlenecks retrieved successfully")
+    @GetMapping("/bottlenecks")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<List<PerformanceReportDto.IdentifiedBottleneck>>> bottlenecks() {
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Bottlenecks identified",
+                        performanceReportService.getBottlenecks()));
     }
 
     @Operation(
@@ -157,29 +195,4 @@ public class MonitoringController {
         public long   getLastTimeMs()      { return lastTimeMs; }
     }
 
-    // ── Cache stats projection ─────────────────────────────────────────────────
-
-    public static final class CacheStatsSummary {
-
-        private final long   hitCount;
-        private final long   missCount;
-        private final double hitRate;
-        private final long   evictionCount;
-        private final long   estimatedSize;
-
-        CacheStatsSummary(long hitCount, long missCount, double hitRate,
-                          long evictionCount, long estimatedSize) {
-            this.hitCount      = hitCount;
-            this.missCount     = missCount;
-            this.hitRate       = Math.round(hitRate * 1000.0) / 1000.0;
-            this.evictionCount = evictionCount;
-            this.estimatedSize = estimatedSize;
-        }
-
-        public long   getHitCount()      { return hitCount; }
-        public long   getMissCount()     { return missCount; }
-        public double getHitRate()       { return hitRate; }
-        public long   getEvictionCount() { return evictionCount; }
-        public long   getEstimatedSize() { return estimatedSize; }
-    }
 }

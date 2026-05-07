@@ -19,6 +19,8 @@ public class MethodMetrics {
     private final AtomicLong slowInvocations = new AtomicLong();
     private final AtomicLong totalTimeMs     = new AtomicLong();
     private final AtomicLong lastTimeMs      = new AtomicLong();
+    private final AtomicLong minTimeMs       = new AtomicLong(Long.MAX_VALUE);
+    private final AtomicLong maxTimeMs       = new AtomicLong(0L);
 
     public MethodMetrics(String methodKey) {
         this.methodKey = methodKey;
@@ -34,15 +36,36 @@ public class MethodMetrics {
         invocations.incrementAndGet();
         totalTimeMs.addAndGet(elapsedMs);
         lastTimeMs.set(elapsedMs);
-        if (slow) {
-            slowInvocations.incrementAndGet();
-        }
+        if (slow) slowInvocations.incrementAndGet();
+        updateMin(elapsedMs);
+        updateMax(elapsedMs);
+    }
+
+    private void updateMin(long elapsedMs) {
+        long current;
+        do {
+            current = minTimeMs.get();
+        } while (elapsedMs < current && !minTimeMs.compareAndSet(current, elapsedMs));
+    }
+
+    private void updateMax(long elapsedMs) {
+        long current;
+        do {
+            current = maxTimeMs.get();
+        } while (elapsedMs > current && !maxTimeMs.compareAndSet(current, elapsedMs));
     }
 
     public String getMethodKey()       { return methodKey; }
     public long   getInvocations()     { return invocations.get(); }
     public long   getSlowInvocations() { return slowInvocations.get(); }
     public long   getLastTimeMs()      { return lastTimeMs.get(); }
+    public long   getMaxTimeMs()       { return maxTimeMs.get(); }
+
+    /** Returns the minimum recorded execution time, or 0 if no invocations yet. */
+    public long getMinTimeMs() {
+        long v = minTimeMs.get();
+        return v == Long.MAX_VALUE ? 0L : v;
+    }
 
     /** Average execution time across all recorded invocations, in milliseconds. */
     public double getAvgTimeMs() {
