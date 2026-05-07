@@ -1,6 +1,5 @@
 package org.ecommerce.api.controller;
 
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,8 +8,6 @@ import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
 import org.ecommerce.api.dto.PerformanceReportDto;
 import org.ecommerce.api.service.ActivityLogService;
 import org.ecommerce.api.service.PerformanceReportService;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,18 +32,15 @@ import java.util.Map;
 public class MonitoringController {
 
     private final PerformanceMonitoringAspect monitoringAspect;
-    private final CacheManager               cacheManager;
     private final ActivityLogService         activityLogService;
     private final PerformanceReportService   performanceReportService;
 
     public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
-                                CacheManager cacheManager,
                                 ActivityLogService activityLogService,
                                 PerformanceReportService performanceReportService) {
-        this.monitoringAspect        = monitoringAspect;
-        this.cacheManager            = cacheManager;
-        this.activityLogService      = activityLogService;
-        this.performanceReportService = performanceReportService;
+        this.monitoringAspect         = monitoringAspect;
+        this.activityLogService       = activityLogService;
+        this.performanceReportService  = performanceReportService;
     }
 
     /**
@@ -100,23 +94,10 @@ public class MonitoringController {
     @ApiResponse(responseCode = "200", description = "Cache statistics retrieved successfully")
     @GetMapping("/cache-stats")
     public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, PerformanceReportDto.CacheStatsSummary>>> cacheStats() {
-        Map<String, PerformanceReportDto.CacheStatsSummary> result = new LinkedHashMap<>();
-
-        cacheManager.getCacheNames().forEach(name -> {
-            org.springframework.cache.Cache cache = cacheManager.getCache(name);
-            if (cache instanceof CaffeineCache caffeineCache) {
-                CacheStats stats = caffeineCache.getNativeCache().stats();
-                result.put(name, new PerformanceReportDto.CacheStatsSummary(
-                        stats.hitCount(),
-                        stats.missCount(),
-                        Math.round(stats.hitRate() * 1000.0) / 1000.0,
-                        stats.evictionCount(),
-                        caffeineCache.getNativeCache().estimatedSize()));
-            }
-        });
-
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Cache statistics retrieved", result));
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Cache statistics retrieved",
+                        performanceReportService.captureCacheStats()));
     }
 
     @Operation(
@@ -166,6 +147,10 @@ public class MonitoringController {
                         "Security report retrieved", activityLogService.countByEventType()));
     }
 
+    private static double round1dp(double v) {
+        return Math.round(v * 10.0) / 10.0;
+    }
+
     // ── Serialisable projection of MethodMetrics ──────────────────────────────
 
     /**
@@ -184,7 +169,7 @@ public class MonitoringController {
             this.methodKey       = m.getMethodKey();
             this.invocations     = m.getInvocations();
             this.slowInvocations = m.getSlowInvocations();
-            this.avgTimeMs       = Math.round(m.getAvgTimeMs() * 10.0) / 10.0;
+            this.avgTimeMs       = round1dp(m.getAvgTimeMs());
             this.lastTimeMs      = m.getLastTimeMs();
         }
 
