@@ -1,0 +1,21 @@
+# ── PROD profile ──────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  graphql:
+    graphiql:
+      enabled: false         # disable interactive UI in production
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: WARN
+    org.ecommerce.api: INFO

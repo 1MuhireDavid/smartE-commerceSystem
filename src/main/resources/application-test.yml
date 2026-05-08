@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_ecommerce_test
+    username: postgres
+    password: rwanda
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  cache:
+    caffeine:
+      spec: maximumSize=100,expireAfterWrite=1m,recordStats
+
+logging:
+  level:
+    org.ecommerce.api: INFO
