@@ -190,6 +190,39 @@ public class PerformanceReportDto {
         public double getMaxMs()        { return maxMs; }
     }
 
+    // ── Thread pool live stats (US 3.2) ──────────────────────────────────────
+
+    public static final class ThreadPoolStats {
+
+        private final int  corePoolSize;
+        private final int  maxPoolSize;
+        private final int  activeThreads;
+        private final int  currentPoolSize;
+        private final int  queueSize;
+        private final int  queueCapacity;
+        private final long completedTasks;
+
+        public ThreadPoolStats(int corePoolSize, int maxPoolSize, int activeThreads,
+                               int currentPoolSize, int queueSize, int queueCapacity,
+                               long completedTasks) {
+            this.corePoolSize    = corePoolSize;
+            this.maxPoolSize     = maxPoolSize;
+            this.activeThreads   = activeThreads;
+            this.currentPoolSize = currentPoolSize;
+            this.queueSize       = queueSize;
+            this.queueCapacity   = queueCapacity;
+            this.completedTasks  = completedTasks;
+        }
+
+        public int  getCorePoolSize()    { return corePoolSize; }
+        public int  getMaxPoolSize()     { return maxPoolSize; }
+        public int  getActiveThreads()   { return activeThreads; }
+        public int  getCurrentPoolSize() { return currentPoolSize; }
+        public int  getQueueSize()       { return queueSize; }
+        public int  getQueueCapacity()   { return queueCapacity; }
+        public long getCompletedTasks()  { return completedTasks; }
+    }
+
     // ── Identified bottleneck entry ───────────────────────────────────────────
 
     public static final class IdentifiedBottleneck {

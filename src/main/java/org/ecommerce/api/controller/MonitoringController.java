@@ -5,10 +5,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.ecommerce.api.aspect.MethodMetrics;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.ecommerce.api.config.AsyncConfig;
 import org.ecommerce.api.dto.PerformanceReportDto;
 import org.ecommerce.api.service.ActivityLogService;
 import org.ecommerce.api.service.PerformanceReportService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,15 +35,18 @@ import java.util.Map;
 public class MonitoringController {
 
     private final PerformanceMonitoringAspect monitoringAspect;
-    private final ActivityLogService         activityLogService;
-    private final PerformanceReportService   performanceReportService;
+    private final ActivityLogService          activityLogService;
+    private final PerformanceReportService    performanceReportService;
+    private final ThreadPoolTaskExecutor      taskExecutor;
 
     public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
                                 ActivityLogService activityLogService,
-                                PerformanceReportService performanceReportService) {
-        this.monitoringAspect         = monitoringAspect;
-        this.activityLogService       = activityLogService;
-        this.performanceReportService  = performanceReportService;
+                                PerformanceReportService performanceReportService,
+                                @Qualifier(AsyncConfig.EXECUTOR_BEAN) ThreadPoolTaskExecutor taskExecutor) {
+        this.monitoringAspect        = monitoringAspect;
+        this.activityLogService      = activityLogService;
+        this.performanceReportService = performanceReportService;
+        this.taskExecutor            = taskExecutor;
     }
 
     /**
@@ -130,6 +136,30 @@ public class MonitoringController {
                 org.ecommerce.api.dto.ApiResponse.success(
                         "Bottlenecks identified",
                         performanceReportService.getBottlenecks()));
+    }
+
+    @Operation(
+        summary     = "Thread pool live statistics (US 3.2)",
+        description = "Returns a real-time snapshot of the ecommerceTaskExecutor: core/max pool "
+                    + "sizes, active thread count, current pool size, queue depth, queue capacity, "
+                    + "and cumulative completed task count. Use this during load tests to observe "
+                    + "whether the pool is saturated and tune async.executor.* in application.yml."
+    )
+    @ApiResponse(responseCode = "200", description = "Thread pool statistics retrieved successfully")
+    @GetMapping("/thread-pool-stats")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PerformanceReportDto.ThreadPoolStats>> threadPoolStats() {
+        java.util.concurrent.BlockingQueue<?> queue = taskExecutor.getThreadPoolExecutor().getQueue();
+        int queueCapacity = queue.size() + queue.remainingCapacity();
+        PerformanceReportDto.ThreadPoolStats stats = new PerformanceReportDto.ThreadPoolStats(
+                taskExecutor.getCorePoolSize(),
+                taskExecutor.getMaxPoolSize(),
+                taskExecutor.getActiveCount(),
+                taskExecutor.getPoolSize(),
+                queue.size(),
+                queueCapacity,
+                taskExecutor.getThreadPoolExecutor().getCompletedTaskCount());
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success("Thread pool statistics retrieved", stats));
     }
 
     @Operation(

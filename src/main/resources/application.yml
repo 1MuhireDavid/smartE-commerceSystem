@@ -58,6 +58,15 @@ monitoring:
   # Service methods that take longer than this threshold are logged as WARN
   slow-method-threshold-ms: 500
 
+# ── Async executor (Epic 3 US 3.2) ───────────────────────────────────────────
+# Override per profile to test different concurrency levels.
+# See docs/concurrency-thread-safety-report.md for benchmark results.
+async:
+  executor:
+    core-pool-size: 4    # threads kept alive; 1 per typical CPU core
+    max-pool-size: 16    # spike headroom; stays below HikariCP default (10 connections)
+    queue-capacity: 200  # task backlog before CallerRunsPolicy kicks in
+
 ---
 # ── DEV profile ──────────────────────────────────────────────────────────────
 spring:
