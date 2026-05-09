@@ -52,6 +52,11 @@ CREATE TABLE categories (
     is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
     display_order INT          NOT NULL DEFAULT 0
 );
+-- Composite index covers the common navigation-menu query:
+--   SELECT * FROM categories WHERE is_active = true ORDER BY display_order
+-- Without this, every menu render does a sequential scan of the whole table.
+-- With it: index-only scan O(log N + k) where k = active categories returned.
+CREATE INDEX idx_categories_active_order ON categories (is_active, display_order);
 
 -- ─── products ─────────────────────────────────────────────────────────────────
 CREATE TABLE products (
@@ -157,6 +162,11 @@ CREATE TABLE cart_items (
     added_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_cart_product UNIQUE (cart_id, product_id)
 );
+-- Explicit index on cart_id alone for fast single-cart item retrieval.
+-- The UNIQUE(cart_id, product_id) constraint creates a composite B-tree that can satisfy
+-- WHERE cart_id = ? via prefix scan, but an explicit single-column index is narrower and
+-- avoids scanning the composite index width for this frequent read pattern.
+CREATE INDEX idx_cart_items_cart_id ON cart_items (cart_id);
 
 -- ─── reviews ──────────────────────────────────────────────────────────────────
 CREATE TABLE reviews (
@@ -173,6 +183,12 @@ CREATE TABLE reviews (
 );
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE INDEX idx_reviews_user_id    ON reviews (user_id);
+-- Composite covering index for the dominant query pattern:
+--   WHERE product_id = ? AND is_approved = true  (public review listing)
+-- The single-column idx_reviews_product_id satisfies the product_id filter but forces a
+-- heap re-check for is_approved.  This composite index eliminates that extra step:
+-- PostgreSQL resolves both predicates directly from the index leaf — O(log N) vs O(log N + k).
+CREATE INDEX idx_reviews_product_approved ON reviews (product_id, is_approved);
 
 -- ─── activity_logs  (NoSQL / JSONB) ───────────────────────────────────────────
 -- Stores unstructured user events.  Each event_type carries its own payload

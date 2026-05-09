@@ -12,6 +12,7 @@ import org.ecommerce.api.repository.UserRepository;
 import org.ecommerce.api.service.ProductService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -35,28 +36,36 @@ public class ProductServiceImpl implements ProductService {
         this.categoryRepository = categoryRepository;
     }
 
+    // Cache browse (no keyword) page results — repeated page views served from Caffeine O(1)
+    // instead of a full DB query.  Keyword searches are not cached: they are low-repetition
+    // and the GIN index already makes them fast.
+    // Cache key encodes all filter dimensions + pagination so different pages don't collide.
     @Override
+    @Cacheable(value = "productLists",
+               key   = "T(String).valueOf(#categoryId) + ':' + #status + ':' + T(String).valueOf(#sellerId) + ':' + #pageable.pageNumber + ':' + #pageable.pageSize",
+               condition = "#keyword == null")
     public PagedResponse<ProductEntity> findAll(
             String keyword, Integer categoryId, String status, Long sellerId, Pageable pageable) {
-        // Uses native SQL full-text search (GIN index on name + description) when a keyword is
-        // present. plainto_tsquery handles tokenisation, so keyword is passed raw (not as a LIKE
-        // pattern). The IS NULL guard in the query handles the no-keyword case.
         Page<ProductEntity> page =
                 productRepository.searchFts(keyword, categoryId, status, sellerId, pageable);
         return PagedResponse.of(page);
     }
 
+    // findByIdWithAssociations() loads category + seller + inventory via LEFT JOIN FETCH in a
+    // single query, replacing up to 3 separate lazy SELECT statements.
     @Override
     @Cacheable(value = "products", key = "#id")
     public ProductEntity findById(long id) {
-        return productRepository.findById(id)
+        return productRepository.findByIdWithAssociations(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Product not found with id: " + id));
     }
 
+    // create() never needs to evict individual product entries (the new product has no
+    // cached entry yet).  Only the list cache is stale after a new product is added.
     @Override
     @Transactional
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "productLists", allEntries = true)
     public ProductEntity create(ProductRequest request) {
         if (productRepository.existsBySlug(request.getSlug())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -77,7 +86,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
+    @Caching(evict = {
+        @CacheEvict(value = "products",     key       = "#id"),
+        @CacheEvict(value = "productLists", allEntries = true)
+    })
     public ProductEntity update(long id, ProductRequest request) {
         ProductEntity product = findById(id);
 
@@ -99,7 +111,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
+    @Caching(evict = {
+        @CacheEvict(value = "products",     key       = "#id"),
+        @CacheEvict(value = "productLists", allEntries = true)
+    })
     public void delete(long id) {
         ProductEntity product = findById(id);
         productRepository.delete(product);

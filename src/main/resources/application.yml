@@ -27,7 +27,9 @@ spring:
 
   cache:
     type: caffeine
-    cache-names: products,categories,users
+    # productLists: browse (keyword=null) paginated lists cached separately so CRUD
+    # operations can evict list pages without discarding individual product entries.
+    cache-names: products,categories,users,productLists
     caffeine:
       # recordStats enables hit/miss tracking exposed via GET /api/monitoring/cache-stats
       spec: maximumSize=500,expireAfterWrite=10m,recordStats
