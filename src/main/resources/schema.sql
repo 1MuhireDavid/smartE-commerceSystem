@@ -166,7 +166,8 @@ CREATE TABLE cart_items (
 -- The UNIQUE(cart_id, product_id) constraint creates a composite B-tree that can satisfy
 -- WHERE cart_id = ? via prefix scan, but an explicit single-column index is narrower and
 -- avoids scanning the composite index width for this frequent read pattern.
-CREATE INDEX idx_cart_items_cart_id ON cart_items (cart_id);
+CREATE INDEX idx_cart_items_cart_id    ON cart_items (cart_id);
+CREATE INDEX idx_cart_items_product_id ON cart_items (product_id);
 
 -- ─── reviews ──────────────────────────────────────────────────────────────────
 CREATE TABLE reviews (

@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.EntityManagerFactory;
 import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
+import org.ecommerce.api.config.AsyncConfig;
 import org.ecommerce.api.dto.PerformanceReportDto;
 import org.ecommerce.api.dto.PerformanceReportDto.*;
 import org.ecommerce.api.service.PerformanceReportService;
@@ -12,9 +13,11 @@ import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.lang.management.*;
@@ -31,7 +34,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
     // Bottleneck catalogue never changes — build once at class load, not per call
     private static final List<IdentifiedBottleneck> BOTTLENECKS = List.of(
         new IdentifiedBottleneck(
-            "CRITICAL", "N+1_QUERY",
+            Severity.CRITICAL, BottleneckCategory.N1_QUERY,
             "OrderServiceImpl.findItems()",
             "OrderItemRepository.findByOrder_OrderId() returns items without JOIN FETCH on "
             + "product. Accessing item.getProduct() on each element triggers N additional "
@@ -40,7 +43,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "product association when loading items by order."
         ),
         new IdentifiedBottleneck(
-            "CRITICAL", "N+1_QUERY",
+            Severity.CRITICAL, BottleneckCategory.N1_QUERY,
             "ReviewServiceImpl.findAll()",
             "ReviewRepository.search() returns a Page<ReviewEntity> with three lazily-loaded "
             + "associations: product, user, and order. Iterating the page fires up to 3N "
@@ -49,7 +52,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "@EntityGraph(attributePaths = {\"product\", \"user\", \"order\"})."
         ),
         new IdentifiedBottleneck(
-            "CRITICAL", "N+1_QUERY",
+            Severity.CRITICAL, BottleneckCategory.N1_QUERY,
             "CartServiceImpl.getItems()",
             "CartItemRepository.findByCart_CartId() returns cart items with LAZY product "
             + "association. Any caller that accesses item.getProduct() — e.g. to return "
@@ -58,7 +61,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "for the findByCartId use-case."
         ),
         new IdentifiedBottleneck(
-            "CRITICAL", "BLOCKING_LOOP",
+            Severity.CRITICAL, BottleneckCategory.BLOCKING_LOOP,
             "OrderServiceImpl.create()",
             "Order creation iterates over N line items, calling productRepository.findById() "
             + "once per item (N SELECT queries) then orderItemRepository.save() once per item "
@@ -68,7 +71,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "orderItemRepository.saveAll() to leverage JDBC batch inserts."
         ),
         new IdentifiedBottleneck(
-            "CRITICAL", "MISSING_INDEX",
+            Severity.CRITICAL, BottleneckCategory.MISSING_INDEX,
             "schema.sql — categories table",
             "The categories table has no indexes other than the PK. Filtering or sorting by "
             + "name (LIKE, lower(name)) or is_active results in a full sequential scan on "
@@ -77,7 +80,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "CREATE INDEX idx_categories_active ON categories (is_active);"
         ),
         new IdentifiedBottleneck(
-            "HIGH", "CACHE_EVICTION",
+            Severity.HIGH, BottleneckCategory.CACHE_EVICTION,
             "ProductServiceImpl.create()",
             "@CacheEvict(value=\"products\", allEntries=true) flushes the entire products "
             + "cache whenever a single product is added. All subsequent reads miss the cache "
@@ -87,7 +90,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "separate cache name invalidated by key."
         ),
         new IdentifiedBottleneck(
-            "HIGH", "UNCACHED_SEARCH",
+            Severity.HIGH, BottleneckCategory.UNCACHED_SEARCH,
             "ProductServiceImpl.findAll()",
             "Every call to the product search endpoint executes a native-SQL full-text search "
             + "query (searchFts) against PostgreSQL. Popular keyword searches hit the database "
@@ -97,7 +100,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "(e.g. 2 minutes) in the Caffeine spec."
         ),
         new IdentifiedBottleneck(
-            "HIGH", "N+1_QUERY",
+            Severity.HIGH, BottleneckCategory.N1_QUERY,
             "PaymentServiceImpl.findAll()",
             "PaymentRepository.search() returns a Page<PaymentEntity> with a lazily-loaded "
             + "order association. Callers that access payment.getOrder() fire N additional "
@@ -106,7 +109,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "annotate with @EntityGraph(attributePaths = {\"order\"})."
         ),
         new IdentifiedBottleneck(
-            "HIGH", "MISSING_INDEX",
+            Severity.HIGH, BottleneckCategory.MISSING_INDEX,
             "schema.sql — cart_items table",
             "cart_items has no secondary indexes. Queries that filter by cart_id or "
             + "product_id (e.g. finding items in a cart) perform full-table scans as the "
@@ -115,7 +118,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "CREATE INDEX idx_cart_items_product_id ON cart_items (product_id);"
         ),
         new IdentifiedBottleneck(
-            "MEDIUM", "MISSING_INDEX",
+            Severity.MEDIUM, BottleneckCategory.MISSING_INDEX,
             "schema.sql — reviews(product_id, is_approved)",
             "Filtering approved reviews for a product (the public storefront use-case) "
             + "requires scanning all reviews for a product_id without a covering index on "
@@ -123,7 +126,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             "Add: CREATE INDEX idx_reviews_product_approved ON reviews (product_id, is_approved);"
         ),
         new IdentifiedBottleneck(
-            "MEDIUM", "MEMORY_LEAK",
+            Severity.MEDIUM, BottleneckCategory.MEMORY_LEAK,
             "TokenBlacklistService",
             "Revoked JWT tokens are stored in a ConcurrentHashMap with no expiry or cleanup. "
             + "Over time the map grows unboundedly, increasing heap pressure and slowing "
@@ -132,7 +135,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "entries whose associated token expiry timestamp has passed."
         ),
         new IdentifiedBottleneck(
-            "MEDIUM", "MULTI_QUERY",
+            Severity.MEDIUM, BottleneckCategory.MULTI_QUERY,
             "OrderServiceImpl.getStats()",
             "getStats() issues two separate aggregate queries: orderRepository.getStatsByStatus() "
             + "and orderRepository.sumPaidRevenue(). These two round-trips could be combined "
@@ -142,7 +145,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
             + "stats endpoint."
         ),
         new IdentifiedBottleneck(
-            "LOW", "CACHE_EVICTION",
+            Severity.LOW, BottleneckCategory.CACHE_EVICTION,
             "UserServiceImpl.create()",
             "@CacheEvict(value=\"users\", allEntries=true) on user registration flushes all "
             + "cached user entries. In a write-heavy registration flow this degrades cache "
@@ -156,26 +159,35 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
     private final CacheManager               cacheManager;
     private final MeterRegistry              meterRegistry;
     private final EntityManagerFactory       entityManagerFactory;
+    private final ThreadPoolTaskExecutor     taskExecutor;
 
     public PerformanceReportServiceImpl(PerformanceMonitoringAspect monitoringAspect,
                                         CacheManager cacheManager,
                                         MeterRegistry meterRegistry,
-                                        EntityManagerFactory entityManagerFactory) {
-        this.monitoringAspect      = monitoringAspect;
-        this.cacheManager          = cacheManager;
-        this.meterRegistry         = meterRegistry;
-        this.entityManagerFactory  = entityManagerFactory;
+                                        EntityManagerFactory entityManagerFactory,
+                                        @Qualifier(AsyncConfig.EXECUTOR_BEAN)
+                                        ThreadPoolTaskExecutor taskExecutor) {
+        this.monitoringAspect     = monitoringAspect;
+        this.cacheManager         = cacheManager;
+        this.meterRegistry        = meterRegistry;
+        this.entityManagerFactory = entityManagerFactory;
+        this.taskExecutor         = taskExecutor;
     }
 
     @Override
     public PerformanceBaselineReport generateReport() {
+        // HTTP timers are scanned once; both slowestEndpoints and throughput share the result.
+        List<HttpEndpointStat>  httpStats  = captureHttpStats();
+        ThroughputSnapshot      throughput = computeThroughput(httpStats);
+
         return new PerformanceBaselineReport(
                 Instant.now(),
                 captureJvm(),
                 captureHibernateStats(),
                 captureTopSlowMethods(),
                 captureCacheStats(),
-                captureHttpStats(),
+                httpStats,
+                throughput,
                 getBottlenecks()
         );
     }
@@ -248,7 +260,8 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
                         m.getSlowInvocations(),
                         round1dp(m.getAvgTimeMs()),
                         m.getMinTimeMs(),
-                        m.getMaxTimeMs()
+                        m.getMaxTimeMs(),
+                        m.getLastTimeMs()
                 ))
                 .sorted(Comparator.comparingDouble(ServiceMethodStat::getAvgTimeMs).reversed())
                 .limit(10)
@@ -265,7 +278,7 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
                 result.put(name, new CacheStatsSummary(
                         stats.hitCount(),
                         stats.missCount(),
-                        Math.round(stats.hitRate() * 1000.0) / 1000.0,
+                        round1dp(stats.hitRate()),
                         stats.evictionCount(),
                         caffeineCache.getNativeCache().estimatedSize()
                 ));
@@ -300,27 +313,60 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
                 .toList();
     }
 
-    @Override
-    public PerformanceReportDto.ThroughputSnapshot getThroughputSnapshot() {
-        long uptimeSec = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+    /** Derives throughput from an already-collected http stats list to avoid a second timer scan. */
+    private ThroughputSnapshot computeThroughput(List<HttpEndpointStat> httpStats) {
+        long uptimeSec     = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+        long totalRequests = httpStats.stream().mapToLong(HttpEndpointStat::getRequestCount).sum();
+        double avgRps      = uptimeSec > 0 ? round1dp((double) totalRequests / uptimeSec) : 0.0;
 
-        Collection<Timer> timers = meterRegistry.find(HTTP_REQUESTS_METRIC).timers();
-        long totalRequests = timers.stream().mapToLong(t -> (long) t.count()).sum();
-        double avgRps = uptimeSec > 0 ? round1dp((double) totalRequests / uptimeSec) : 0.0;
-
-        List<PerformanceReportDto.EndpointThroughput> top = timers.stream()
-                .filter(t -> t.count() > 0)
-                .map(t -> new PerformanceReportDto.EndpointThroughput(
-                        t.getId().getTag("uri"),
-                        t.getId().getTag("method"),
-                        (long) t.count(),
-                        uptimeSec > 0 ? round1dp((double) t.count() / uptimeSec) : 0.0
+        List<PerformanceReportDto.EndpointThroughput> top = httpStats.stream()
+                .map(s -> new PerformanceReportDto.EndpointThroughput(
+                        s.getUri(),
+                        s.getHttpMethod(),
+                        s.getRequestCount(),
+                        uptimeSec > 0 ? round1dp((double) s.getRequestCount() / uptimeSec) : 0.0
                 ))
                 .sorted(Comparator.comparingDouble(
                         PerformanceReportDto.EndpointThroughput::getRequestsPerSecond).reversed())
-                .limit(10)
                 .toList();
 
-        return new PerformanceReportDto.ThroughputSnapshot(uptimeSec, totalRequests, avgRps, top);
+        return new ThroughputSnapshot(uptimeSec, totalRequests, avgRps, top);
+    }
+
+    @Override
+    public ThroughputSnapshot getThroughputSnapshot() {
+        return computeThroughput(captureHttpStats());
+    }
+
+    @Override
+    public Map<String, PerformanceReportDto.ServiceMethodStat> captureAllMethodMetrics() {
+        Map<String, PerformanceReportDto.ServiceMethodStat> result = new LinkedHashMap<>();
+        monitoringAspect.getMetrics().forEach((key, m) ->
+                result.put(key, new ServiceMethodStat(
+                        m.getMethodKey(),
+                        m.getInvocations(),
+                        m.getSlowInvocations(),
+                        round1dp(m.getAvgTimeMs()),
+                        m.getMinTimeMs(),
+                        m.getMaxTimeMs(),
+                        m.getLastTimeMs()
+                ))
+        );
+        return result;
+    }
+
+    @Override
+    public ThreadPoolStats captureThreadPoolStats() {
+        java.util.concurrent.BlockingQueue<?> queue = taskExecutor.getThreadPoolExecutor().getQueue();
+        int queueCapacity = queue.size() + queue.remainingCapacity();
+        return new ThreadPoolStats(
+                taskExecutor.getCorePoolSize(),
+                taskExecutor.getMaxPoolSize(),
+                taskExecutor.getActiveCount(),
+                taskExecutor.getPoolSize(),
+                queue.size(),
+                queueCapacity,
+                taskExecutor.getThreadPoolExecutor().getCompletedTaskCount()
+        );
     }
 }

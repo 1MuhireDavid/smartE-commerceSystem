@@ -14,4 +14,8 @@ public interface PerformanceReportService {
     Map<String, PerformanceReportDto.CacheStatsSummary> captureCacheStats();
 
     PerformanceReportDto.ThroughputSnapshot getThroughputSnapshot();
+
+    PerformanceReportDto.ThreadPoolStats captureThreadPoolStats();
+
+    Map<String, PerformanceReportDto.ServiceMethodStat> captureAllMethodMetrics();
 }

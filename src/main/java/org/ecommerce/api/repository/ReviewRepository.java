@@ -11,14 +11,13 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity, Long> {
 
     boolean existsByProduct_ProductIdAndUser_UserId(Long productId, Long userId);
 
-    // JOIN FETCH eliminates N+1: product + user loaded in the same SELECT instead of
-    // N individual lazy-load queries per page.  ManyToOne fetches are safe with Pageable
-    // (no HHH90003004 in-memory pagination warning — that only affects collection fetches).
-    // countQuery is required because Spring Data cannot derive COUNT from a FETCH-join query.
+    // countQuery required: Spring Data cannot derive COUNT from a FETCH-join query.
+    // ManyToOne FETCHes are safe with Pageable — HHH90003004 only triggers on collection fetches.
     @Query(value = """
         SELECT r FROM ReviewEntity r
         LEFT JOIN FETCH r.product
         LEFT JOIN FETCH r.user
+        LEFT JOIN FETCH r.order
         WHERE (:productId IS NULL OR r.productId = :productId)
           AND (:approved  IS NULL OR r.approved  = :approved)
         """,

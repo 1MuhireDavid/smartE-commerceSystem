@@ -3,76 +3,33 @@ package org.ecommerce.api.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.ecommerce.api.aspect.MethodMetrics;
-import org.ecommerce.api.aspect.PerformanceMonitoringAspect;
-import org.ecommerce.api.config.AsyncConfig;
 import org.ecommerce.api.dto.PerformanceReportDto;
 import org.ecommerce.api.service.ActivityLogService;
 import org.ecommerce.api.service.PerformanceReportService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Exposes the live per-method performance metrics collected by
- * {@link PerformanceMonitoringAspect}.
- *
- * <p>This controller intentionally has no business logic — it is a pure
- * read-through to the aspect's in-memory metrics map.
- */
 @Tag(name = "Monitoring", description = "Live AOP-collected service performance metrics")
 @PreAuthorize("hasRole('ADMIN')")
 @RestController
 @RequestMapping("/api/monitoring")
 public class MonitoringController {
 
-    private final PerformanceMonitoringAspect monitoringAspect;
-    private final ActivityLogService          activityLogService;
-    private final PerformanceReportService    performanceReportService;
-    private final ThreadPoolTaskExecutor      taskExecutor;
+    private final PerformanceReportService performanceReportService;
+    private final ActivityLogService       activityLogService;
 
-    public MonitoringController(PerformanceMonitoringAspect monitoringAspect,
-                                ActivityLogService activityLogService,
-                                PerformanceReportService performanceReportService,
-                                @Qualifier(AsyncConfig.EXECUTOR_BEAN) ThreadPoolTaskExecutor taskExecutor) {
-        this.monitoringAspect        = monitoringAspect;
-        this.activityLogService      = activityLogService;
+    public MonitoringController(PerformanceReportService performanceReportService,
+                                ActivityLogService activityLogService) {
         this.performanceReportService = performanceReportService;
-        this.taskExecutor            = taskExecutor;
+        this.activityLogService       = activityLogService;
     }
 
-    /**
-     * Returns invocation counts, average time, slow-call counts, and last
-     * recorded execution time for every service method that has been called
-     * at least once since the application started.
-     *
-     * <p>Stats reset on application restart (in-memory only).
-     *
-     * <p>Example response:
-     * <pre>
-     * {
-     *   "status": "success",
-     *   "message": "Metrics retrieved",
-     *   "data": {
-     *     "ProductServiceImpl.findAll": {
-     *       "methodKey":        "ProductServiceImpl.findAll",
-     *       "invocations":      42,
-     *       "slowInvocations":  2,
-     *       "avgTimeMs":        38.7,
-     *       "lastTimeMs":       45
-     *     }
-     *   }
-     * }
-     * </pre>
-     */
     @Operation(
         summary     = "Get service performance metrics",
         description = "Returns live invocation counts and execution-time statistics collected "
@@ -81,14 +38,11 @@ public class MonitoringController {
     )
     @ApiResponse(responseCode = "200", description = "Metrics retrieved successfully")
     @GetMapping("/metrics")
-    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, MetricsSummary>>> metrics() {
-        Map<String, MethodMetrics>  raw     = monitoringAspect.getMetrics();
-        Map<String, MetricsSummary> summary = new LinkedHashMap<>();
-
-        raw.forEach((key, m) -> summary.put(key, new MetricsSummary(m)));
-
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<Map<String, PerformanceReportDto.ServiceMethodStat>>> metrics() {
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Metrics retrieved", summary));
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Metrics retrieved",
+                        performanceReportService.captureAllMethodMetrics()));
     }
 
     @Operation(
@@ -110,9 +64,8 @@ public class MonitoringController {
         summary     = "Get full performance baseline report (US 1.1 / 1.2)",
         description = "Aggregates JVM heap/CPU/GC, Hibernate query statistics, top-10 slowest "
                     + "service methods (with min/avg/max), Caffeine cache hit rates, top-10 "
-                    + "slowest HTTP endpoints, and the full bottleneck catalogue into a single "
-                    + "point-in-time snapshot. Use this to capture the baseline before applying "
-                    + "optimisations in later Epics."
+                    + "slowest HTTP endpoints, throughput snapshot, and the full bottleneck "
+                    + "catalogue into a single point-in-time snapshot."
     )
     @ApiResponse(responseCode = "200", description = "Performance report generated successfully")
     @GetMapping("/performance-report")
@@ -148,18 +101,10 @@ public class MonitoringController {
     @ApiResponse(responseCode = "200", description = "Thread pool statistics retrieved successfully")
     @GetMapping("/thread-pool-stats")
     public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PerformanceReportDto.ThreadPoolStats>> threadPoolStats() {
-        java.util.concurrent.BlockingQueue<?> queue = taskExecutor.getThreadPoolExecutor().getQueue();
-        int queueCapacity = queue.size() + queue.remainingCapacity();
-        PerformanceReportDto.ThreadPoolStats stats = new PerformanceReportDto.ThreadPoolStats(
-                taskExecutor.getCorePoolSize(),
-                taskExecutor.getMaxPoolSize(),
-                taskExecutor.getActiveCount(),
-                taskExecutor.getPoolSize(),
-                queue.size(),
-                queueCapacity,
-                taskExecutor.getThreadPoolExecutor().getCompletedTaskCount());
         return ResponseEntity.ok(
-                org.ecommerce.api.dto.ApiResponse.success("Thread pool statistics retrieved", stats));
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Thread pool statistics retrieved",
+                        performanceReportService.captureThreadPoolStats()));
     }
 
     @Operation(
@@ -191,38 +136,4 @@ public class MonitoringController {
                 org.ecommerce.api.dto.ApiResponse.success(
                         "Security report retrieved", activityLogService.countByEventType()));
     }
-
-    private static double round1dp(double v) {
-        return Math.round(v * 10.0) / 10.0;
-    }
-
-    // ── Serialisable projection of MethodMetrics ──────────────────────────────
-
-    /**
-     * Snapshot DTO — converts {@link MethodMetrics} atomic state into plain
-     * Java types that Jackson can serialise without reflection on AtomicLong.
-     */
-    public static final class MetricsSummary {
-
-        private final String methodKey;
-        private final long   invocations;
-        private final long   slowInvocations;
-        private final double avgTimeMs;
-        private final long   lastTimeMs;
-
-        MetricsSummary(MethodMetrics m) {
-            this.methodKey       = m.getMethodKey();
-            this.invocations     = m.getInvocations();
-            this.slowInvocations = m.getSlowInvocations();
-            this.avgTimeMs       = round1dp(m.getAvgTimeMs());
-            this.lastTimeMs      = m.getLastTimeMs();
-        }
-
-        public String getMethodKey()       { return methodKey; }
-        public long   getInvocations()     { return invocations; }
-        public long   getSlowInvocations() { return slowInvocations; }
-        public double getAvgTimeMs()       { return avgTimeMs; }
-        public long   getLastTimeMs()      { return lastTimeMs; }
-    }
-
 }

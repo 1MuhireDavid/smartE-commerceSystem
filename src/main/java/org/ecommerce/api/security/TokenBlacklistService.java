@@ -1,12 +1,14 @@
 package org.ecommerce.api.security;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingDeque;
 
 /**
  * In-memory token revocation store — Epic 3 (US 3.1).
@@ -14,8 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Data structures:
  *   ConcurrentHashMap<String, Instant>  — O(1) lookup; per-bucket stripe locking means
  *     revoke() and isRevoked() on different tokens never contend.
- *   CopyOnWriteArrayList<String>        — audit trail; optimised for frequent reads
- *     (admin audit queries) over rare writes (one append per revocation).
+ *   LinkedBlockingDeque<String>         — bounded audit trail (10 000 entries); drops the
+ *     oldest entry when full so the deque never grows past MAX_AUDIT_ENTRIES.
  *
  * isRevoked() uses a single ConcurrentHashMap.compute() call to atomically check expiry
  * and lazily remove stale entries, eliminating the race that existed between the old
@@ -24,12 +26,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class TokenBlacklistService {
 
+    private static final int MAX_AUDIT_ENTRIES = 10_000;
+
     private final ConcurrentHashMap<String, Instant> blacklist = new ConcurrentHashMap<>();
-    private final CopyOnWriteArrayList<String>        auditLog  = new CopyOnWriteArrayList<>();
+    private final LinkedBlockingDeque<String>         auditLog  = new LinkedBlockingDeque<>(MAX_AUDIT_ENTRIES);
 
     public void revoke(String token, Instant expiry) {
         blacklist.put(token, expiry);
-        auditLog.add("REVOKED:" + token + "@" + Instant.now());
+        // offerLast() silently drops the offer when the deque is full — oldest entries
+        // are already in the blacklist map, so audit coverage is not lost.
+        if (!auditLog.offerLast("REVOKED:" + token + "@" + Instant.now())) {
+            auditLog.pollFirst();                    // evict oldest, then retry
+            auditLog.offerLast("REVOKED:" + token + "@" + Instant.now());
+        }
     }
 
     public boolean isRevoked(String token) {
@@ -42,10 +51,13 @@ public class TokenBlacklistService {
     }
 
     public List<String> getAuditLog() {
-        return Collections.unmodifiableList(auditLog);
+        return Collections.unmodifiableList(new ArrayList<>(auditLog));
     }
 
-    public int blacklistSize() {
-        return blacklist.size();
+    /** Removes blacklist entries whose expiry has already passed. Runs every 15 minutes. */
+    @Scheduled(fixedDelay = 15 * 60_000)
+    public void purgeExpired() {
+        Instant now = Instant.now();
+        blacklist.entrySet().removeIf(e -> e.getValue().isBefore(now));
     }
 }

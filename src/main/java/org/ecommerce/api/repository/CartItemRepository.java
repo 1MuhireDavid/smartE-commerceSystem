@@ -10,8 +10,6 @@ import java.util.Optional;
 
 public interface CartItemRepository extends JpaRepository<CartItemEntity, Long> {
 
-    // JOIN FETCH loads each item's product in the same query, eliminating N lazy SELECT
-    // statements when GraphQL resolvers or other callers access item.getProduct().
     @Query("SELECT ci FROM CartItemEntity ci LEFT JOIN FETCH ci.product WHERE ci.cart.cartId = :cartId")
     List<CartItemEntity> findByCart_CartId(@Param("cartId") Long cartId);
 

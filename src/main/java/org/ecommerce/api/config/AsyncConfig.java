@@ -45,8 +45,6 @@ public class AsyncConfig {
         executor.setMaxPoolSize(maxPoolSize);
         executor.setQueueCapacity(queueCapacity);
         executor.setThreadNamePrefix("ecom-async-");
-        // CallerRunsPolicy: when the queue is full the calling thread runs the task itself,
-        // applying natural back-pressure instead of dropping work.
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;

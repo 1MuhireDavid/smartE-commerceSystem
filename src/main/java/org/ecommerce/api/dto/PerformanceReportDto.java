@@ -13,17 +13,27 @@ public class PerformanceReportDto {
 
     private PerformanceReportDto() {}
 
+    // ── Enums ─────────────────────────────────────────────────────────────────
+
+    public enum Severity { CRITICAL, HIGH, MEDIUM, LOW }
+
+    public enum BottleneckCategory {
+        N1_QUERY, BLOCKING_LOOP, MISSING_INDEX,
+        CACHE_EVICTION, UNCACHED_SEARCH, MEMORY_LEAK, MULTI_QUERY
+    }
+
     // ── Top-level report ──────────────────────────────────────────────────────
 
     public static final class PerformanceBaselineReport {
 
-        private final Instant                       capturedAt;
-        private final JvmSnapshot                   jvm;
-        private final HibernateStats                hibernateStats;
-        private final List<ServiceMethodStat>       topSlowMethods;
+        private final Instant                        capturedAt;
+        private final JvmSnapshot                    jvm;
+        private final HibernateStats                 hibernateStats;
+        private final List<ServiceMethodStat>        topSlowMethods;
         private final Map<String, CacheStatsSummary> cacheStats;
-        private final List<HttpEndpointStat>        slowestEndpoints;
-        private final List<IdentifiedBottleneck>    bottlenecks;
+        private final List<HttpEndpointStat>         slowestEndpoints;
+        private final ThroughputSnapshot             throughput;
+        private final List<IdentifiedBottleneck>     bottlenecks;
 
         public PerformanceBaselineReport(Instant capturedAt,
                                          JvmSnapshot jvm,
@@ -31,6 +41,7 @@ public class PerformanceReportDto {
                                          List<ServiceMethodStat> topSlowMethods,
                                          Map<String, CacheStatsSummary> cacheStats,
                                          List<HttpEndpointStat> slowestEndpoints,
+                                         ThroughputSnapshot throughput,
                                          List<IdentifiedBottleneck> bottlenecks) {
             this.capturedAt       = capturedAt;
             this.jvm              = jvm;
@@ -38,6 +49,7 @@ public class PerformanceReportDto {
             this.topSlowMethods   = topSlowMethods;
             this.cacheStats       = cacheStats;
             this.slowestEndpoints = slowestEndpoints;
+            this.throughput       = throughput;
             this.bottlenecks      = bottlenecks;
         }
 
@@ -47,6 +59,7 @@ public class PerformanceReportDto {
         public List<ServiceMethodStat>        getTopSlowMethods()   { return topSlowMethods; }
         public Map<String, CacheStatsSummary> getCacheStats()       { return cacheStats; }
         public List<HttpEndpointStat>         getSlowestEndpoints() { return slowestEndpoints; }
+        public ThroughputSnapshot             getThroughput()       { return throughput; }
         public List<IdentifiedBottleneck>     getBottlenecks()      { return bottlenecks; }
     }
 
@@ -97,10 +110,10 @@ public class PerformanceReportDto {
 
         public HibernateStats(long queryExecutionCount, long queryExecutionMaxTimeMs,
                               String slowestQueryString, long entityLoadCount) {
-            this.queryExecutionCount   = queryExecutionCount;
+            this.queryExecutionCount     = queryExecutionCount;
             this.queryExecutionMaxTimeMs = queryExecutionMaxTimeMs;
-            this.slowestQueryString    = slowestQueryString;
-            this.entityLoadCount       = entityLoadCount;
+            this.slowestQueryString      = slowestQueryString;
+            this.entityLoadCount         = entityLoadCount;
         }
 
         public long   getQueryExecutionCount()     { return queryExecutionCount; }
@@ -119,15 +132,17 @@ public class PerformanceReportDto {
         private final double avgTimeMs;
         private final long   minTimeMs;
         private final long   maxTimeMs;
+        private final long   lastTimeMs;
 
         public ServiceMethodStat(String methodKey, long invocations, long slowInvocations,
-                                 double avgTimeMs, long minTimeMs, long maxTimeMs) {
+                                 double avgTimeMs, long minTimeMs, long maxTimeMs, long lastTimeMs) {
             this.methodKey       = methodKey;
             this.invocations     = invocations;
             this.slowInvocations = slowInvocations;
             this.avgTimeMs       = avgTimeMs;
             this.minTimeMs       = minTimeMs;
             this.maxTimeMs       = maxTimeMs;
+            this.lastTimeMs      = lastTimeMs;
         }
 
         public String getMethodKey()       { return methodKey; }
@@ -136,6 +151,7 @@ public class PerformanceReportDto {
         public double getAvgTimeMs()       { return avgTimeMs; }
         public long   getMinTimeMs()       { return minTimeMs; }
         public long   getMaxTimeMs()       { return maxTimeMs; }
+        public long   getLastTimeMs()      { return lastTimeMs; }
     }
 
     // ── Caffeine cache stats snapshot ─────────────────────────────────────────
@@ -200,9 +216,9 @@ public class PerformanceReportDto {
 
     public static final class ThroughputSnapshot {
 
-        private final long                   uptimeSeconds;
-        private final long                   totalRequests;
-        private final double                 avgRequestsPerSecond;
+        private final long                     uptimeSeconds;
+        private final long                     totalRequests;
+        private final double                   avgRequestsPerSecond;
         private final List<EndpointThroughput> topEndpoints;
 
         public ThroughputSnapshot(long uptimeSeconds, long totalRequests,
@@ -278,14 +294,14 @@ public class PerformanceReportDto {
 
     public static final class IdentifiedBottleneck {
 
-        private final String severity;
-        private final String category;
-        private final String location;
-        private final String description;
-        private final String recommendation;
+        private final Severity           severity;
+        private final BottleneckCategory category;
+        private final String             location;
+        private final String             description;
+        private final String             recommendation;
 
-        public IdentifiedBottleneck(String severity, String category, String location,
-                                    String description, String recommendation) {
+        public IdentifiedBottleneck(Severity severity, BottleneckCategory category,
+                                    String location, String description, String recommendation) {
             this.severity       = severity;
             this.category       = category;
             this.location       = location;
@@ -293,10 +309,10 @@ public class PerformanceReportDto {
             this.recommendation = recommendation;
         }
 
-        public String getSeverity()       { return severity; }
-        public String getCategory()       { return category; }
-        public String getLocation()       { return location; }
-        public String getDescription()    { return description; }
-        public String getRecommendation() { return recommendation; }
+        public Severity           getSeverity()       { return severity; }
+        public BottleneckCategory getCategory()       { return category; }
+        public String             getLocation()       { return location; }
+        public String             getDescription()    { return description; }
+        public String             getRecommendation() { return recommendation; }
     }
 }

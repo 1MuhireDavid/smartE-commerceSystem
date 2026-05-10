@@ -23,9 +23,6 @@ import java.util.Map;
  *   topMethod=ProductServiceImpl.findAll avg=3.2ms×847 slowCalls=0 |
  *   cache: products hit=92.1% size=312 | throughput=4.7 req/s total=16920
  * </pre>
- *
- * This provides a timestamped timeline of runtime behaviour during development and
- * load testing without requiring a separate profiling tool.
  */
 @Component
 @Profile("dev")
@@ -42,12 +39,12 @@ public class MetricsScheduler {
     @Scheduled(fixedRateString = "${metrics.log-interval-ms:60000}")
     public void logMetricsSnapshot() {
         try {
+            // generateReport() gathers HTTP timers once; throughput is derived from the same data.
             PerformanceReportDto.PerformanceBaselineReport report =
                     performanceReportService.generateReport();
-            PerformanceReportDto.ThroughputSnapshot throughput =
-                    performanceReportService.getThroughputSnapshot();
 
-            PerformanceReportDto.JvmSnapshot jvm = report.getJvm();
+            PerformanceReportDto.JvmSnapshot       jvm       = report.getJvm();
+            PerformanceReportDto.ThroughputSnapshot throughput = report.getThroughput();
 
             String topMethod = "none";
             double topAvg    = 0.0;
@@ -67,8 +64,8 @@ public class MetricsScheduler {
                    + "throughput={} req/s total={}",
                     jvm.getHeapUsedMb(), jvm.getHeapMaxMb(), jvm.getHeapUsagePct(),
                     jvm.getCpuUsagePct(), jvm.getThreadCount(), jvm.getGcTotalTimeMs(),
-                    topMethod, topAvg, report.getTopSlowMethods().isEmpty() ? 0
-                            : report.getTopSlowMethods().get(0).getInvocations(),
+                    topMethod, topAvg,
+                    report.getTopSlowMethods().isEmpty() ? 0 : report.getTopSlowMethods().get(0).getInvocations(),
                     topSlow,
                     cacheInfo,
                     throughput.getAvgRequestsPerSecond(), throughput.getTotalRequests());
