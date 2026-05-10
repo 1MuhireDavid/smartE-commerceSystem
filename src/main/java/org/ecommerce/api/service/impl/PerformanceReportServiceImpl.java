@@ -279,16 +279,48 @@ public class PerformanceReportServiceImpl implements PerformanceReportService {
         if (timers.isEmpty()) return Collections.emptyList();
 
         return timers.stream()
-                .map(t -> new HttpEndpointStat(
-                        t.getId().getTag("uri"),
-                        t.getId().getTag("method"),
-                        (long) t.count(),
-                        round1dp(t.mean(TimeUnit.MILLISECONDS)),
-                        round1dp(t.max(TimeUnit.MILLISECONDS))
-                ))
+                .map(t -> {
+                    // percentile() returns NaN if management.metrics.distribution.percentiles
+                    // is not configured — guard with 0.0 fallback for clean JSON output.
+                    double p95 = t.percentile(0.95, TimeUnit.MILLISECONDS);
+                    double p99 = t.percentile(0.99, TimeUnit.MILLISECONDS);
+                    return new HttpEndpointStat(
+                            t.getId().getTag("uri"),
+                            t.getId().getTag("method"),
+                            (long) t.count(),
+                            round1dp(t.mean(TimeUnit.MILLISECONDS)),
+                            Double.isNaN(p95) ? 0.0 : round1dp(p95),
+                            Double.isNaN(p99) ? 0.0 : round1dp(p99),
+                            round1dp(t.max(TimeUnit.MILLISECONDS))
+                    );
+                })
                 .filter(s -> s.getRequestCount() > 0)
                 .sorted(Comparator.comparingDouble(HttpEndpointStat::getMeanMs).reversed())
                 .limit(10)
                 .toList();
+    }
+
+    @Override
+    public PerformanceReportDto.ThroughputSnapshot getThroughputSnapshot() {
+        long uptimeSec = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+
+        Collection<Timer> timers = meterRegistry.find(HTTP_REQUESTS_METRIC).timers();
+        long totalRequests = timers.stream().mapToLong(t -> (long) t.count()).sum();
+        double avgRps = uptimeSec > 0 ? round1dp((double) totalRequests / uptimeSec) : 0.0;
+
+        List<PerformanceReportDto.EndpointThroughput> top = timers.stream()
+                .filter(t -> t.count() > 0)
+                .map(t -> new PerformanceReportDto.EndpointThroughput(
+                        t.getId().getTag("uri"),
+                        t.getId().getTag("method"),
+                        (long) t.count(),
+                        uptimeSec > 0 ? round1dp((double) t.count() / uptimeSec) : 0.0
+                ))
+                .sorted(Comparator.comparingDouble(
+                        PerformanceReportDto.EndpointThroughput::getRequestsPerSecond).reversed())
+                .limit(10)
+                .toList();
+
+        return new PerformanceReportDto.ThroughputSnapshot(uptimeSec, totalRequests, avgRps, top);
     }
 }

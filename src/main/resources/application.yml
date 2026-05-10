@@ -55,10 +55,31 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}   # 24 h in milliseconds
 
+# ── Actuator (Epic 5 US 5.1) ─────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    distribution:
+      # Enables timer.percentile(0.95/0.99) in PerformanceReportServiceImpl.
+      # Without this, percentile() returns NaN and falls back to 0.0 in the report.
+      percentiles:
+        http.server.requests: 0.5,0.95,0.99
+      percentiles-histogram:
+        http.server.requests: true
+
 # ── AOP monitoring ────────────────────────────────────────────────────────────
 monitoring:
   # Service methods that take longer than this threshold are logged as WARN
   slow-method-threshold-ms: 500
+
+# ── Scheduled metrics logger (Epic 5 US 5.1) ─────────────────────────────────
+metrics:
+  # MetricsScheduler fires at this interval (dev profile only).
+  # Lower to 10000 (10 s) during load tests for a finer-grained timeline.
+  log-interval-ms: 60000
 
 # ── Async executor (Epic 3 US 3.2) ───────────────────────────────────────────
 # Override per profile to test different concurrency levels.

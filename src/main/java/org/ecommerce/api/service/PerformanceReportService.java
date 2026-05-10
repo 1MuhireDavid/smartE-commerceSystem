@@ -12,4 +12,6 @@ public interface PerformanceReportService {
     List<PerformanceReportDto.IdentifiedBottleneck> getBottlenecks();
 
     Map<String, PerformanceReportDto.CacheStatsSummary> captureCacheStats();
+
+    PerformanceReportDto.ThroughputSnapshot getThroughputSnapshot();
 }

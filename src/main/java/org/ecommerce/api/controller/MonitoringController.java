@@ -163,6 +163,21 @@ public class MonitoringController {
     }
 
     @Operation(
+        summary     = "Request throughput snapshot (US 5.1)",
+        description = "Returns application uptime, total HTTP requests served, average requests/second "
+                    + "since start-up, and a per-endpoint breakdown sorted by RPS. Derived from "
+                    + "Micrometer's http.server.requests timers — values accumulate from the last restart."
+    )
+    @ApiResponse(responseCode = "200", description = "Throughput snapshot retrieved successfully")
+    @GetMapping("/throughput")
+    public ResponseEntity<org.ecommerce.api.dto.ApiResponse<PerformanceReportDto.ThroughputSnapshot>> throughput() {
+        return ResponseEntity.ok(
+                org.ecommerce.api.dto.ApiResponse.success(
+                        "Throughput snapshot retrieved",
+                        performanceReportService.getThroughputSnapshot()));
+    }
+
+    @Operation(
         summary     = "Get security event report (US 5.2)",
         description = "Returns per-event-type counts from the activity_logs table: "
                     + "login_success, login_failure, register_success, oauth2_login_success, "

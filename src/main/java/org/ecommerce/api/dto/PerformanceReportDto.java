@@ -164,7 +164,7 @@ public class PerformanceReportDto {
         public long   getEstimatedSize() { return estimatedSize; }
     }
 
-    // ── HTTP endpoint latency stat ────────────────────────────────────────────
+    // ── HTTP endpoint latency stat (with percentiles — Epic 5 US 5.1) ──────────
 
     public static final class HttpEndpointStat {
 
@@ -172,14 +172,18 @@ public class PerformanceReportDto {
         private final String httpMethod;
         private final long   requestCount;
         private final double meanMs;
+        private final double p95Ms;
+        private final double p99Ms;
         private final double maxMs;
 
         public HttpEndpointStat(String uri, String httpMethod, long requestCount,
-                                double meanMs, double maxMs) {
+                                double meanMs, double p95Ms, double p99Ms, double maxMs) {
             this.uri          = uri;
             this.httpMethod   = httpMethod;
             this.requestCount = requestCount;
             this.meanMs       = meanMs;
+            this.p95Ms        = p95Ms;
+            this.p99Ms        = p99Ms;
             this.maxMs        = maxMs;
         }
 
@@ -187,7 +191,54 @@ public class PerformanceReportDto {
         public String getHttpMethod()   { return httpMethod; }
         public long   getRequestCount() { return requestCount; }
         public double getMeanMs()       { return meanMs; }
+        public double getP95Ms()        { return p95Ms; }
+        public double getP99Ms()        { return p99Ms; }
         public double getMaxMs()        { return maxMs; }
+    }
+
+    // ── Throughput snapshot (Epic 5 US 5.1) ──────────────────────────────────
+
+    public static final class ThroughputSnapshot {
+
+        private final long                   uptimeSeconds;
+        private final long                   totalRequests;
+        private final double                 avgRequestsPerSecond;
+        private final List<EndpointThroughput> topEndpoints;
+
+        public ThroughputSnapshot(long uptimeSeconds, long totalRequests,
+                                  double avgRequestsPerSecond,
+                                  List<EndpointThroughput> topEndpoints) {
+            this.uptimeSeconds        = uptimeSeconds;
+            this.totalRequests        = totalRequests;
+            this.avgRequestsPerSecond = avgRequestsPerSecond;
+            this.topEndpoints         = topEndpoints;
+        }
+
+        public long                    getUptimeSeconds()        { return uptimeSeconds; }
+        public long                    getTotalRequests()        { return totalRequests; }
+        public double                  getAvgRequestsPerSecond() { return avgRequestsPerSecond; }
+        public List<EndpointThroughput> getTopEndpoints()        { return topEndpoints; }
+    }
+
+    public static final class EndpointThroughput {
+
+        private final String uri;
+        private final String httpMethod;
+        private final long   requestCount;
+        private final double requestsPerSecond;
+
+        public EndpointThroughput(String uri, String httpMethod,
+                                  long requestCount, double requestsPerSecond) {
+            this.uri               = uri;
+            this.httpMethod        = httpMethod;
+            this.requestCount      = requestCount;
+            this.requestsPerSecond = requestsPerSecond;
+        }
+
+        public String getUri()               { return uri; }
+        public String getHttpMethod()        { return httpMethod; }
+        public long   getRequestCount()      { return requestCount; }
+        public double getRequestsPerSecond() { return requestsPerSecond; }
     }
 
     // ── Thread pool live stats (US 3.2) ──────────────────────────────────────
